@@ -1,23 +1,21 @@
 module Tree 
-  ( Tree
+  ( Tree(..)
   ) where
 
 data Tree a = Branch (Tree a) (Tree a)
-            | Leaf a
+            | Leaf a deriving (Eq, Show)
 
 instance Foldable Tree where
-    foldMap f (Leaf a) = f a
-    foldMap f (Branch a b) = (foldMap f a) <> (foldMap f b)
+  foldMap f (Leaf a) = f a
+  foldMap f (Branch a b) = (foldMap f a) <> (foldMap f b)
 
 instance Functor Tree where
-    fmap f (Leaf a) = Leaf $ f a
-    fmap f (Branch l r) = Branch (fmap f l) (fmap f r)
+  fmap f (Leaf a) = Leaf $ f a
+  fmap f (Branch l r) = Branch (fmap f l) (fmap f r)
 
 instance Applicative Tree where
-    pure = Leaf
+  pure = Leaf
 
-    (Leaf f) <*> (Leaf t) = Leaf $ f t
-    --(Leaf f) <*> (Branch l r) = Leaf $ f t
+  (Branch l r) <*> t = Branch (l <*> t) (r <*> t)
+  (Leaf f) <*> t = fmap f t
 
---instance Traversable where
-    --sequence = 

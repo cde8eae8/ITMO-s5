@@ -52,6 +52,7 @@ test-suite hw2-cde8eae8-test
       StringSumTest
       NonEmptyTest
       MovingAverageTest
+      TreeTest
       Paths_hw2_cde8eae8
   hs-source-dirs:
       test
@@ -61,12 +62,12 @@ test-suite hw2-cde8eae8-test
     , hedgehog
     , hspec
     , HUnit
-    , QuickCheck
-    , hw2-cde8eae8
     , tasty
     , tasty-hunit
     , tasty-hspec
     , tasty-quickcheck
     , tasty-smallcheck
+    , QuickCheck
+    , hw2-cde8eae8
 
   default-language: Haskell2010
