@@ -1,19 +1,18 @@
 import Test.Tasty
 import Test.Tasty.HUnit
 
-import qualified ArithmeticTests
-import qualified ParserTests
-import qualified StringSumTests
-import qualified NonEmptyTests
-import qualified MovingAverageTests
+import qualified ArithmeticTest
+import qualified ParserTest
+import qualified StringSumTest
+import qualified NonEmptyTest
+import qualified MovingAverageTest
 
 main :: IO ()
 main = do
-  tests <- sequence [ ParserTests.tests 
-                    , StringSumTests.tests 
-                    , NonEmptyTests.tests
-                    , ArithmeticTests.tests
-                    , MovingAverageTests.tests
+  tests <- sequence [ ParserTest.tests 
+                    , StringSumTest.tests 
+                    , NonEmptyTest.tests
+                    , ArithmeticTest.tests
+                    , MovingAverageTest.tests
                     ]
   defaultMain $ testGroup "" $ tests
-  --defaultMain $ testGroup "" $ [ ArithmeticTests.tests, parserTests ]

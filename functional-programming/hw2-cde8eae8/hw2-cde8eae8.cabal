@@ -47,11 +47,11 @@ test-suite hw2-cde8eae8-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      ArithmeticTests
-      ParserTests
-      StringSumTests
-      NonEmptyTests
-      MovingAverageTests
+      ArithmeticTest
+      ParserTest
+      StringSumTest
+      NonEmptyTest
+      MovingAverageTest
       Paths_hw2_cde8eae8
   hs-source-dirs:
       test

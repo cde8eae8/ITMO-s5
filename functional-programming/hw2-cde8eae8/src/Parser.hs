@@ -1,4 +1,14 @@
-module Parser (Parser(..), ok, eof, satisfy, element, stream, brackets, parseInt, parseListOfLists) where
+module Parser 
+  ( Parser(..)
+  , ok
+  , eof
+  , satisfy
+  , element
+  , stream
+  , brackets
+  , parseInt
+  , parseListOfLists
+  ) where
 
 import Control.Applicative
 import Data.List
@@ -10,7 +20,8 @@ import Control.Monad
 data Parser s a = Parser { runParser :: [s] -> Maybe (a, [s]) }
 
 instance Functor (Parser s) where
-    fmap f (Parser run) = Parser $ \s -> run s >>= (\(val, st) -> Just (f val, st))
+    fmap f (Parser run) = 
+      Parser $ \s -> run s >>= (\(val, st) -> Just (f val, st))
 
 instance Applicative (Parser s) where
     pure a = Parser $ \s -> return (a, s)
@@ -50,13 +61,19 @@ eof = Parser $ \s -> case s of
 satisfy :: (s -> Bool) -> Parser s s
 satisfy pred = Parser $ \s -> case s of
                                 [] -> Nothing
-                                (x:xs) -> if pred x then Just (x, xs) else Nothing
+                                (x:xs) -> 
+                                  if pred x 
+                                  then Just (x, xs) 
+                                  else Nothing
 
 element :: (Eq s) => s -> Parser s s
 element c = satisfy (c ==)
 
 stream :: (Eq s) => [s] -> Parser s [s]
-stream str = Parser $ \s -> if isPrefixOf str s then Just (str, drop (length str) s) else Nothing
+stream str = Parser $ \s -> 
+  if isPrefixOf str s 
+  then Just (str, drop (length str) s) 
+  else Nothing
 
 oneOf :: (Eq s) => [s] -> Parser s s 
 oneOf set = satisfy (\x -> isJust $ find (x ==) set)
@@ -74,7 +91,12 @@ brackets :: Parser Char ()
 brackets = bracketOrEmpty >> eof
   where open = element '('
         close = element ')'
-        bracketOrEmpty = (open >> bracketOrEmpty >> close >> bracketOrEmpty) <|> ok
+        bracketOrEmpty = 
+          (do
+            open 
+            bracketOrEmpty 
+            close 
+            bracketOrEmpty) <|> ok
 
 parseInt :: Parser Char Int
 parseInt = do

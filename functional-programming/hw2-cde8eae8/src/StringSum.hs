@@ -1,4 +1,6 @@
-module StringSum (stringSum) where 
+module StringSum 
+  ( stringSum
+  ) where 
 
 import Text.Read 
 

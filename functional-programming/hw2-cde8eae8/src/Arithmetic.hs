@@ -1,4 +1,8 @@
-module Arithmetic (Expression(..), eval, ArithmeticError(..)) where
+module Arithmetic 
+  ( Expression(..)
+  , ArithmeticError(..)
+  , eval
+  ) where
 
 data Expression = Number Int
                 | Sum Expression Expression
@@ -9,18 +13,25 @@ data Expression = Number Int
 
 data ArithmeticError = DivisionByZero | NegativePower deriving (Eq, Show)
 
-evalExpr :: (Int -> Int -> Either ArithmeticError Int) 
-         -> Expression -> Expression -> Either ArithmeticError Int
-evalExpr f l r = do 
+evalExpr 
+  :: Expression 
+  -> Expression 
+  -> (Int -> Int -> Either ArithmeticError Int) 
+  -> Either ArithmeticError Int
+evalExpr l r f = do 
   lres <- eval l
   rres <- eval r
   f lres rres
 
 eval :: Expression -> Either ArithmeticError Int
 eval (Number x) = Right x
-eval (Sum l r) = evalExpr (\a b -> Right $ a + b) l r
-eval (Mul l r) = evalExpr (\a b -> Right $ a * b) l r
-eval (Sub l r) = evalExpr (\a b -> Right $ a - b) l r
-eval (Div l r) = evalExpr (\a b -> if b == 0 then Left DivisionByZero else Right $ a `div` b) l r
-eval (Pow l r) = evalExpr (\a b -> if b < 0 then Left NegativePower else Right $ a ^ b) l r
+eval (Sum l r) = evalExpr l r (\a b -> Right $ a + b)
+eval (Mul l r) = evalExpr l r (\a b -> Right $ a * b) 
+eval (Sub l r) = evalExpr l r (\a b -> Right $ a - b) 
+eval (Div l r) = evalExpr l r (\a b -> if b == 0 
+                                   then Left DivisionByZero 
+                                   else Right $ a `div` b) 
+eval (Pow l r) = evalExpr l r (\a b -> if b < 0 
+                                   then Left NegativePower 
+                                   else Right $ a ^ b)
 

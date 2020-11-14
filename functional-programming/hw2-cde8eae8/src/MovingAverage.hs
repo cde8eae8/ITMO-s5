@@ -1,7 +1,9 @@
-module MovingAverage (moving) where
+module MovingAverage 
+  ( moving
+  ) where
 
-import Control.Monad.State
 import Prelude hiding (sum)
+import Control.Monad.State
 
 data Window = Window { sum      :: Int 
                      , beginIt  :: [Int]
@@ -14,12 +16,14 @@ shiftWindow width = do
                          , beginIt = tail $ beginIt win
                          , endIt = tail $ endIt win
                          })
-  gets (\s -> ((fromIntegral $ sum s) :: Float) / (fromIntegral width))
+  v <- gets (fromIntegral . sum)
+  return $ v / (fromIntegral width)
 
 moving :: Int -> [Int] -> [Float]
-moving width xs = 
+moving width xs =
   evalState 
-    (sequence $ map (\w -> shiftWindow w) $ [1..width] ++ replicate (length xs - width) width) 
+    (mapM (\w -> shiftWindow w) $ 
+      [1..min width len] ++ replicate (len - width) width) 
     (Window 0 (replicate width 0 ++ xs) xs)
+  where len = length xs
 
-  

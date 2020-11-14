@@ -1,4 +1,6 @@
-module Tree (Tree) where
+module Tree 
+  ( Tree
+  ) where
 
 data Tree a = Branch (Tree a) (Tree a)
             | Leaf a

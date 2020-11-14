@@ -1,4 +1,8 @@
-module NonEmpty (NonEmpty(..), toList, fromList) where
+module NonEmpty 
+  ( NonEmpty(..)
+  , fromList
+  , toList
+  ) where
 
 import Control.Applicative
 
@@ -19,10 +23,12 @@ instance Functor NonEmpty where
 
 instance Applicative NonEmpty where
   pure f = f :| []
+
   (f :| fs) <*> (x :| xs) = f x :| ((fmap f xs) ++ (fs <*> (x : xs)))
 
 instance Monad NonEmpty where
   return = pure
+
   (x :| xs) >>= f = h :| (t ++ (xs >>= toList . f))
     where (h :| t) = f x
 
