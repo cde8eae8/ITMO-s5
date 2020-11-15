@@ -2,8 +2,9 @@ module ParserTest (tests) where
 
 import Control.Applicative
 import Control.Monad
-import Data.Maybe
 import Data.Char
+import Data.Functor
+import Data.Maybe
 import Test.Hspec
 import Test.Tasty
 import Test.Tasty.Hspec
@@ -42,8 +43,8 @@ tests = testSpec "" $ do
 
     describe "Applicative" $ do
       test (pure 10) "abc" 10 "abc"
-      test (element 'a' *> pure 10) "abc" 10 "bc"
-      testFail (element 'b' *> pure 10) "abc"
+      test (element 'a' $> 10) "abc" 10 "bc"
+      testFail (element 'b' $> 10) "abc"
       test (element 'c' *> element 'a' *> element 'b') "cabc" 'b' "c"
       testFail (element 'c' *> element 'c' *> element 'a') "cabc"
 

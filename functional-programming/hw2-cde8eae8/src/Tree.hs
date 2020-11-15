@@ -19,3 +19,7 @@ instance Applicative Tree where
   (Branch l r) <*> t = Branch (l <*> t) (r <*> t)
   (Leaf f) <*> t = fmap f t
 
+instance Traversable Tree where
+  traverse f (Leaf a) = Leaf <$> f a
+  traverse f (Branch a b) = Branch <$> traverse f a <*> traverse f b
+

@@ -1,13 +1,14 @@
+{-# LANGUAGE LambdaCase #-}
 module Parser 
   ( Parser(..)
-  , ok
-  , eof
-  , satisfy
-  , element
-  , stream
   , brackets
+  , element
+  , eof
+  , ok
   , parseInt
   , parseListOfLists
+  , satisfy
+  , stream
   ) where
 
 import Control.Applicative
@@ -21,7 +22,7 @@ data Parser s a = Parser { runParser :: [s] -> Maybe (a, [s]) }
 
 instance Functor (Parser s) where
     fmap f (Parser run) = 
-      Parser $ \s -> run s >>= (\(val, st) -> Just (f val, st))
+      Parser $ run >=> (\(val, st) -> Just (f val, st))
 
 instance Applicative (Parser s) where
     pure a = Parser $ \s -> return (a, s)
@@ -54,24 +55,24 @@ ok :: Parser s ()
 ok = return ()
 
 eof :: Parser s ()
-eof = Parser $ \s -> case s of 
-                      [] -> Just ((), s)
-                      _  -> Nothing
+eof = Parser $ \s -> case s of
+                  [] -> Just ((), s)
+                  _  -> Nothing
 
 satisfy :: (s -> Bool) -> Parser s s
-satisfy pred = Parser $ \s -> case s of
-                                [] -> Nothing
-                                (x:xs) -> 
-                                  if pred x 
-                                  then Just (x, xs) 
-                                  else Nothing
+satisfy pred = Parser $ \case
+                          [] -> Nothing
+                          (x:xs) -> 
+                            if pred x 
+                            then Just (x, xs) 
+                            else Nothing
 
 element :: (Eq s) => s -> Parser s s
 element c = satisfy (c ==)
 
 stream :: (Eq s) => [s] -> Parser s [s]
 stream str = Parser $ \s -> 
-  if isPrefixOf str s 
+  if str `isPrefixOf` s 
   then Just (str, drop (length str) s) 
   else Nothing
 
@@ -125,6 +126,5 @@ parseListOfLists = do
               skipSpaces
               element ','
               skipSpaces
-              val <- parseList 
-              return val)
+              parseList)
   return $ first : tail

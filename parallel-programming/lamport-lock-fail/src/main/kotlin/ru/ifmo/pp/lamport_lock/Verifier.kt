@@ -3,7 +3,7 @@ package ru.ifmo.pp.lamport_lock
 import java.io.BufferedReader
 import java.io.FileReader
 import java.util.Collections.synchronizedList
-import kotlin.streams.toList
+import java.util.stream.*
 
 fun main(args: Array<String>) {
     val t1 = LockThread(0)
@@ -118,6 +118,6 @@ private fun parseAction(s: String): Action {
 
 private fun parseExecution(filename: String): List<Action> {
     BufferedReader(FileReader(filename)).use { br ->
-        return br.lines().map(::parseAction).toList()
+        return br.lines().map(::parseAction).collect(Collectors.toList())
     }
 }
