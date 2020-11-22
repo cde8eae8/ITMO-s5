@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <cmath>
 #include <iostream>
+#include <iomanip>
 
 #ifdef PYMODULE
 #include "knn.h"

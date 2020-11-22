@@ -5,6 +5,7 @@
 #include <vector>
 #include <algorithm>
 #include <math.h>
+#include <assert.h>
 
 #ifdef DEBUG
 
