@@ -5,6 +5,11 @@
  *
  * @author :TODO: LastName FirstName
  */
+
+import java.lang.Math.max
+import java.lang.Math.min
+import java.util.concurrent.locks.ReentrantLock;
+
 class BankImpl(n: Int) : Bank {
     private val accounts: Array<Account> = Array(n) { Account() }
 
@@ -23,8 +28,17 @@ class BankImpl(n: Int) : Bank {
      */
     override val totalAmount: Long
         get() {
-            return accounts.sumOf { account ->
-                account.amount
+            for (acc in accounts) {
+                acc.lock.lock();
+            }
+            try {
+                return accounts.sumOf { account ->
+                    account.amount
+                }
+            } finally {
+                for (acc in accounts) {
+                    acc.lock.unlock();
+                }
             }
         }
 
@@ -34,9 +48,14 @@ class BankImpl(n: Int) : Bank {
     override fun deposit(index: Int, amount: Long): Long {
         require(amount > 0) { "Invalid amount: $amount" }
         val account = accounts[index]
-        check(!(amount > Bank.MAX_AMOUNT || account.amount + amount > Bank.MAX_AMOUNT)) { "Overflow" }
-        account.amount += amount
-        return account.amount
+        account.lock.lock();
+        try {
+            check(!(amount > Bank.MAX_AMOUNT || account.amount + amount > Bank.MAX_AMOUNT)) { "Overflow" }
+            account.amount += amount
+            return account.amount
+        } finally {
+            account.lock.unlock();
+        }
     }
 
     /**
@@ -45,9 +64,14 @@ class BankImpl(n: Int) : Bank {
     override fun withdraw(index: Int, amount: Long): Long {
         require(amount > 0) { "Invalid amount: $amount" }
         val account = accounts[index]
-        check(account.amount - amount >= 0) { "Underflow" }
-        account.amount -= amount
-        return account.amount
+        account.lock.lock();
+        try {
+            check(account.amount - amount >= 0) { "Underflow" }
+            account.amount -= amount
+            return account.amount
+        } finally {
+            account.lock.unlock()
+        }
     }
 
     /**
@@ -58,10 +82,17 @@ class BankImpl(n: Int) : Bank {
         require(fromIndex != toIndex) { "fromIndex == toIndex" }
         val from = accounts[fromIndex]
         val to = accounts[toIndex]
-        check(amount <= from.amount) { "Underflow" }
-        check(!(amount > Bank.MAX_AMOUNT || to.amount + amount > Bank.MAX_AMOUNT)) { "Overflow" }
-        from.amount -= amount
-        to.amount += amount
+        accounts[min(fromIndex, toIndex)].lock.lock();
+        accounts[max(fromIndex, toIndex)].lock.lock();
+        try {
+            check(amount <= from.amount) { "Underflow" }
+            check(!(amount > Bank.MAX_AMOUNT || to.amount + amount > Bank.MAX_AMOUNT)) { "Overflow" }
+            from.amount -= amount
+            to.amount += amount
+        } finally {
+            from.lock.unlock();
+            to.lock.unlock();
+        }
     }
 
     /**
@@ -71,6 +102,7 @@ class BankImpl(n: Int) : Bank {
         /**
          * Amount of funds in this account.
          */
+        var lock = ReentrantLock();
         var amount: Long = 0
     }
 }

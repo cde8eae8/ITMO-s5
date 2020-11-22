@@ -1,0 +1,55 @@
+cmake_minimum_required(VERSION 3.15)
+project(codeforces)
+
+set(CMAKE_CXX_STANDARD 17)
+
+add_compile_definitions(DEBUG LOCAL)
+
+function(PYTARGET name files)
+    message(STATUS "new py target py${name}")
+    pybind11_add_module(py${name} ${files})
+    target_compile_definitions(py${name} PRIVATE PYMODULE)
+    add_custom_command(TARGET py${name} POST_BUILD COMMAND cp py${name}.cpython-38-x86_64-linux-gnu.so -t ../../../modules)
+endfunction()
+
+function(open_context_CFmain task name file)
+    set(name "${name}" PARENT_SCOPE)
+    set(task "${task}" PARENT_SCOPE)
+    set(file "${file}" PARENT_SCOPE)
+
+    set(target_name "codeforces-${task}-${name}")
+    message(STATUS "new target ${target_name}")
+    add_executable(${target_name} ${file})
+    target_compile_definitions(${target_name} PRIVATE CF_MAIN)
+    message(STATUS "${target_name} CF_MAIN")
+endfunction()
+
+function(CFtest local_name)
+    set(target_name "codeforces-${task}-${name}-${local_name}")
+    message(STATUS "new debug target ${target_name}")
+    add_executable(${target_name} ${file})
+    string(TOUPPER ${local_name} macro_name)
+    target_compile_definitions(${target_name} PRIVATE CF_TEST_${macro_name})
+    target_compile_definitions(${target_name} PRIVATE TEST PRIVATE)
+    message(STATUS "${target_name} CF_TEST_${macro_name}")
+endfunction()
+
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_DEBUG} -pedantic -Wall -Wextra -Wcast-align -Wcast-qual -Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wconversion -Wshadow -Wstrict-null-sentinel -Wstrict-overflow=5 -Wswitch-default -Wundef -Wunused")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_DEBUG} -Wall -ggdb -fsanitize=address -fno-sanitize-recover")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -ggdb")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -D_GLIBCXX_DEBUG")
+set(CMAKE_CXX_CPPCHECK cppcheck --error-exitcode=0 --enable=all --suppress=missingIncludeSystem)
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -ggdb -O1")
+
+find_package(pybind11 REQUIRED)
+
+add_subdirectory(knn)
+add_subdirectory(linear-regression)
+add_subdirectory(svm)
+add_subdirectory(bayes)
+add_subdirectory(tree)
+add_subdirectory(binary-network)
+add_subdirectory(matrix-function)
+add_subdirectory(matrix-function-3d)
+add_subdirectory(LSTM)

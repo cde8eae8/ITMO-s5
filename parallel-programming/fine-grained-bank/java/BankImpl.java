@@ -3,7 +3,7 @@
  *
  * <p>:TODO: This implementation has to be made thread-safe.
  *
- * @author :TODO: LastName FirstName
+ * @author :TODO: Дроздов Никита
  */
 public class BankImpl implements Bank {
     /**
