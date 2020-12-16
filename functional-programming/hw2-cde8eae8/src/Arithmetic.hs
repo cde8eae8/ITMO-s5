@@ -13,6 +13,7 @@ data Expression = Number Int
 
 data ArithmeticError = DivisionByZero | NegativePower deriving (Eq, Show)
 
+
 evalExpr 
   :: Expression 
   -> Expression 
