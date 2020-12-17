@@ -38,9 +38,9 @@ instance Comonad Identity where
 
 > **==список/Maybe не являются комонадами, так как могут быть пустыми==**
 
-### И монады
+### Сравнение с монадой
 return <-> extract
->>= <-> =>>
+\>>= <-> =>>
 join <-> duplicate
 
 # Zipper
@@ -163,7 +163,21 @@ extract (_, b)  = b
 extend f (a, b) = (a, f b)
 ```
 и радоваться. 
+```haskell
+extract :: Pos1D -> Int
+extract pos = snd pos
 
+extend :: ((e, a) -> b) -> (e, a) -> (e, b)
+extend f w = (fst w, f w)
+
+-- left, right :: (e, a) -> b
+left, right :: (Int, Int) -> Int
+
+ghci> extract (start 0 =>> right 3 =>> left 7)
+-4
+ghci> extract (start 0 =>> right 3 =>> left 7 =>> fst =>> right 5)
+5
+```
 ### Builder
 Хотим накопить `[Option]`, а после из них создать `Config`. Делаем комонаду
 ```haskell

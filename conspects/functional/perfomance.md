@@ -98,6 +98,16 @@ map1 g (List f) = List h
 ```
 
 ```haskell
+data Step s a = Done 
+              | Skip    s 
+              | Yield a s
+
+data Stream a = forall s . Stream (s -> Step s a) s
+                                     │            │
+                                     │            └── stream itself
+                                     │
+                                     └─── stream extractor
+
 stream :: forall a . [a] -> Stream a
 stream xs = Stream next xs 
   where
@@ -112,6 +122,14 @@ unstream (Stream next s0) = go s0
              Done       -> []
              Skip s'    -> go s'
              Yield a s' -> a : go s'
+			 
+filterS :: forall a . (a -> Bool) -> Stream a -> Stream a
+filterS p (Stream next s) = Stream next' s 
+  where
+    next' xs = case next xs of 
+                    Done       -> Done
+                    Skip s'    -> Skip s'
+                    Yield a s' -> if p a then Yield a s' else Skip s'
 ```
 Плюсы: мы не меняем списки, только штуки для фильтрации
 Реализуем `filter'` как (`stream` + накидывание `Skip` + `unstream`), мап как это же + применение функции, фолдр тоже как-то. Добавим реврайт правило `stream . unstream s = s`. 
@@ -124,7 +142,7 @@ unstream (Stream next s0) = go s0
 ```
 
 # Mutable Objects
-Для `IOArray` мы должны использовать `IO`, хотя общения с внешним миром нет. А в любом месте получить `IO` или избавиться от него сложна.
+Для `IOArray` мы должны использовать `IO`, хотя общения с внешним миром нет. А в любом месте получить `IO` или избавиться от него сложно.
 
 Есть `ST` монада - _строгая_ *__чистая__* монада для мутабельных объектов.
 
@@ -153,7 +171,7 @@ sumST xs = runST $ do
 ```
 
 ### Mutable array in ST
-```
+```haskell
 class Monad m => MArray a e m where  -- type class for all arrays
 
 -- import Data.Array.ST
@@ -180,3 +198,7 @@ writeArray :: (MArray a e m, Ix i) => a i e -> i -> e -> m ()
 ### Измерение времени
 Пакет Criterion
 + Ссылочки
+
+
+# Ссылки
+- [seq + deepseq + Eval](https://www.oreilly.com/library/view/parallel-and-concurrent/9781449335939/ch02.html)

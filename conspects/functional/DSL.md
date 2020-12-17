@@ -191,7 +191,7 @@ calc a b = a + f b
 Часто используется вместе с TypeApplications - явно задать типовые параметры функции.
 
 # final tagless
-```
+```haskell
 class ArithExpr expr where
   aeNum  :: Int -> expr Int
   aePlus :: expr Int -> expr Int -> expr Int
@@ -239,6 +239,8 @@ instance ArithExpr ToS where
  
  Также хаскель для final tagless может оптимизировать код, а с GADT нет. #todo - почему?
  
+ 
+#todo vs Free Monads see https://serokell.io/blog/tagless-final
  # DSL для языков программирования
  
  На хаскеле удобно писать интерпретаторы для языков программирования.
