@@ -43,13 +43,17 @@ wrapExceptions
 wrapExceptions fm = do 
   envRef <- ask
   env <- liftIO $ readIORef envRef
-  (env, res) <- liftIO $ catch (fmap (second Right) (runFS fm env))
-          (\e -> do
-            env2 <- readIORef envRef
-            return (env2, Left e)
-          )
-  liftIO $ writeIORef envRef env
-  return res
+  --(env, res) <- liftIO $ catch (fmap (second Right) (runFS fm env))
+  --        (\e -> do
+  --          env2 <- readIORef envRef
+  --          return (env2, Left e)
+  --        )
+  v <- (liftIO $ try (runFS fm env))
+  case v of
+    Left e -> return $ Left e
+    Right (modifiedEnv, res) -> do
+      liftIO $ writeIORef envRef modifiedEnv
+      return $ Right res
 
 -- А что если 
 -- cd 

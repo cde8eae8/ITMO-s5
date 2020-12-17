@@ -30,10 +30,10 @@ instance ModifyEnv FileManager where
 --  st <- lift get
 
 instance FS FileManager where
-  createDirectory path = error ""
+  createDirectory path = lift $ Dir.createDirectory path
 
   existsDirectory path = lift $ doesDirectoryExist path
 
-  existsFile p = return True
+  existsFile path = lift $ doesFileExist path
 
   listDirectory path = lift $ Dir.listDirectory path

@@ -131,7 +131,39 @@ mapConcurrently :: Traversable t => (a -> IO b) -> t a -> IO (t b)
 
 # Transactions & STM монада
 Переложить с одного аккаунта на другой в многопотоке используя IORef разделенный между потоками.
-#todo что да как, еще много
+
+IORef не синхронизированы на чтение из разных потоков(!)
+
+Один из способов решения - неблокирующие операции.
+
+У нас есть `TVar`, когда мы из разных потоков пишем в нее, мы пишем CASом. Есть монада `STM`, которая всем этим и занимается.
+
+В STM только чистый код, потому что мы повторяем одно действие несколько раз. Есть исключения. Есть `retry`. 
+
+```haskell
+-- import Control.Concurrent.STM
+data STM a  -- software transactional memory
+instance Monad STM where
+
+atomically :: STM a -> IO a
+
+data TVar a -- transactional variable
+newTVar   :: a -> STM (TVar a)
+readTVar  :: TVar a -> STM a
+writeTVar :: TVar a -> a -> STM ()
+
+retry     :: STM a                   -- try again current transaction
+orElse    :: STM a -> STM a -> STM a -- if first retries then call second
+
+throwSTM  :: Exception e => e -> STM a
+catchSTM  :: Exception e => STM a -> (e -> STM a) -> STM a
+```
+
+### retry
+Если нам не нравится текущее состояние, то мы можем подождать с помощью `retry` пока не изменится какая-нибудь переменная в блоке из тех что мы читали через `readTVar`
+
+### vs MVar
+Медленнее, но сложнее получить дедлок. Пока не используешь `retry`?
 
 ---
 
