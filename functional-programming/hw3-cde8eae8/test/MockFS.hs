@@ -1,8 +1,8 @@
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 module MockFS where 
 import FS
+import Debug.Trace
 import FileManagerEnv
 import Control.Monad.ST
 import Control.Exception
@@ -18,7 +18,10 @@ data FileSystemEntry = Directory String
                      deriving Show
 
 data MockFSExceptions = PathDoesNotExist FilePath
-  deriving Show
+                      | PathAlreadyExists FilePath
+                      | IsNotDirectory FilePath
+                      | IsNotFile FilePath
+                      deriving Show
 
 instance Exception MockFSExceptions
 
@@ -38,49 +41,96 @@ data MockEnv = MockEnv { env :: Env
                        , filesystem :: FileSystemTree
                        } deriving Show
 
-newtype FileSystemTree = FS (Tree FileSystemEntry) 
-
 type FSZipper a = TreePos a FileSystemEntry
 
+--newtype FileSystemTree = FS (Tree FileSystemEntry) 
+newtype FileSystemTree = FS (FSZipper Full)
+
 instance Show FileSystemTree where
-  show (FS tree) = drawTree $ fmap show tree
+  show (FS tree) = drawTree $ fmap show (toTree tree)
 
 type MockFS s = ReaderT (STRef s MockEnv) (ST s)
 
 emptyFS :: FileSystemTree
-emptyFS = FS $ (Node $ Directory "/") []
+emptyFS = FS $ fromTree $ (Node $ Directory "/") []
 
 -- TODO support paths starting from '/'
-focusPath :: FSZipper Full -> [FilePath] -> Maybe (FSZipper Full)
-focusPath rootPos (path:tail) = if (entryName $ label rootPos) == path 
-                                then focusChild rootPos tail
-                                else Nothing
+-- TODO correct handling of .. and . at the begin of path
+focusPath :: FSZipper Full -> FilePath -> Maybe (FSZipper Full)
+focusPath startPos originalPath = 
+  if head path == "/"
+    then focusChild (root startPos) (tail path)
+    else focusChild startPos path
   where 
+    path = splitDirectories originalPath
     focusChild :: FSZipper Full -> [FilePath] -> Maybe (FSZipper Full)
-    focusChild treePos (dir:dirs) = 
-      -- TODO: is join ok??
-      join (fmap (\x -> focusChild x dirs) (move treePos dir))
+    focusChild treePos (dir:dirs) = do
+      nextDir <- focusNextDir treePos dir
+      focusChild nextDir dirs
     focusChild treePos [] = Just treePos
 
-    move :: FSZipper Full -> String -> Maybe (FSZipper Full)
-    move treePos "."  = Just treePos
-    move treePos ".." = Just $ fromMaybe (root treePos) (parent treePos)
-    move treePos dir  = findChild (firstChild treePos) dir
+    focusNextDir :: FSZipper Full -> String -> Maybe (FSZipper Full)
+    focusNextDir treePos "."  = Just treePos
+    focusNextDir treePos ".." = Just $ fromMaybe (root treePos) (parent treePos)
+    focusNextDir treePos dir  = findInRow (firstChild treePos) dir
 
-    findChild :: Maybe (FSZipper Full) -> String -> Maybe (FSZipper Full)
-    findChild Nothing name = Nothing
-    findChild (Just child) name = if (entryName $ label child) == name 
-                                     then Just child
-                                     else findChild (next child) name
+    findInRow :: Maybe (FSZipper Full) -> String -> Maybe (FSZipper Full)
+    findInRow posInRow name = do
+      entry <- posInRow
+      if entryName (label entry) == name 
+        then Just entry
+        else findInRow (next entry) name
 
-mockCreateDirectory :: FilePath -> String -> FileSystemTree -> FileSystemTree
-mockCreateDirectory path name (FS tree) = 
-  case focusedPath of 
-    Nothing -> throw $ PathDoesNotExist path
-    Just parentDir -> FS $ toTree (insert newDir (children parentDir))
-  where 
-    focusedPath = focusPath (fromTree tree) (splitDirectories path)
-    newDir = Node (Directory name) []
+focusPathFromRoot :: FSZipper Full -> FilePath -> Maybe (FSZipper Full)
+focusPathFromRoot tree = focusPath (root tree) 
+
+throwIfPathDoesNotExist :: FSZipper Full -> FilePath -> FSZipper Full
+throwIfPathDoesNotExist pos path = 
+  let focusedPath = focusPath pos path in
+    fromMaybe (throw (PathDoesNotExist path)) focusedPath
+
+throwIfPathDoesNotExistFromRoot :: FSZipper Full -> FilePath -> FSZipper Full
+throwIfPathDoesNotExistFromRoot tree = throwIfPathDoesNotExist (root tree) 
+
+mockCreateEntry 
+  :: Tree FileSystemEntry 
+  -> FilePath 
+  -> String 
+  -> FileSystemTree 
+  -> FileSystemTree
+mockCreateEntry newEntry path name (FS tree) = 
+  if isNothing focusedNewEntry
+    then FS $ insert newEntry (children focusedPath)
+    else throw $ PathAlreadyExists $ path </> name
+  where
+    focusedPath :: FSZipper Full
+    focusedPath = throwIfPathDoesNotExistFromRoot tree path
+    focusedNewEntry :: Maybe (FSZipper Full)
+    focusedNewEntry = focusPath focusedPath name 
+
+-- TODO: prism??
+mockRemoveDirectory :: FilePath -> FileSystemTree -> FileSystemTree
+mockRemoveDirectory path (FS tree) = FS $
+  if isDirectoryFocused focusedPath 
+    then fromMaybe (root tree) (parent $ delete focusedPath)
+    else throw (IsNotDirectory path)
+  where
+    focusedPath :: FSZipper Full
+    focusedPath = throwIfPathDoesNotExistFromRoot tree path
+
+mockRemoveEntry 
+  :: (FSZipper Full -> Bool) 
+  -> (FilePath -> MockFSExceptions)
+  -> FilePath 
+  -> FileSystemTree 
+  -> FileSystemTree
+mockRemoveEntry predicat exception path (FS tree) = FS $
+  if predicat focusedPath 
+    then fromMaybe (root tree) (parent $ delete focusedPath)
+    else throw (exception path)
+  where
+    focusedPath :: FSZipper Full
+    focusedPath = throwIfPathDoesNotExistFromRoot tree path
 
 --findFile :: FileSystemTree -> FilePath -> File
 --findFile tree path = findImpl tree (splitPath path)
@@ -95,18 +145,60 @@ runMockFS state init fs = stToIO $ do
   newState <- readSTRef envRef
   return (newState, v)
 
+-- TODO: Lens?...
 modifyFS :: (FileSystemTree -> FileSystemTree) -> MockFS s ()
 modifyFS f = do
     envRef <- ask
     lift $ modifySTRef envRef (\st -> st { filesystem = f $ filesystem st })
 
+getFS :: MockFS s FileSystemTree
+getFS = do
+    envRef <- ask
+    lift $ filesystem <$> readSTRef envRef
+
+
+isDirectoryFocused :: FSZipper Full -> Bool
+isDirectoryFocused z = case label z of 
+                         Directory{} -> True
+                         File{}      -> False
+
+isFileFocused :: FSZipper Full -> Bool
+isFileFocused z = case label z of 
+                         Directory{} -> False
+                         File{}      -> True
+
 instance FS (MockFS s) where
   createDirectory path = do
     let (dir, name) = splitFileName $ dropTrailingPathSeparator path
-    modifyFS (mockCreateDirectory dir name)
+    modifyFS (mockCreateEntry (Node (Directory name) []) dir name)
 
-  existsDirectory path = error ""
+  createFile path = do
+    let (dir, name) = splitFileName $ dropTrailingPathSeparator path
+    modifyFS (mockCreateEntry (Node (File name) []) dir name)
 
-  existsFile p = return True
+  existsDirectory path = do
+    FS fs <- getFS
+    let focus = focusPathFromRoot fs path
+    return $ isJust focus && isDirectoryFocused (fromJust focus)
 
-  listDirectory path = error ""
+  existsFile path = do
+    FS fs <- getFS
+    let focus = focusPathFromRoot fs path
+    return $ isJust focus && isFileFocused (fromJust focus)
+
+  listDirectory path = do
+    FS fs <- getFS
+    let focusMaybe = focusPathFromRoot fs path
+    case focusMaybe of 
+      Nothing -> throw $ PathDoesNotExist path 
+      Just focus -> pure $ 
+        entryName . label . fromJust <$> 
+          takeWhile isJust (iterate (>>= next) (firstChild focus))
+
+  removeFile path = do
+    modifyFS $ mockRemoveEntry isFileFocused IsNotFile path 
+
+  removeDirectory path = do
+    modifyFS $ mockRemoveEntry isDirectoryFocused IsNotDirectory path 
+
+

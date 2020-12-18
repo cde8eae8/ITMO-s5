@@ -1,3 +1,4 @@
+#colloc2
 # Общая идея тредов
 Есть треды ОС, есть треды хаскеля по несколько на тред ос, и есть спарки - еще более легкие треды в хаскель тредах
 
@@ -127,6 +128,14 @@ race         :: IO a -> IO b -> IO (Either a b)
 
 -- параллельный мап
 mapConcurrently :: Traversable t => (a -> IO b) -> t a -> IO (t b) 
+
+test4 :: String -> String -> (ByteString, ByteString)
+test4 url1 url2 = 
+    withAsync (getURL url1) $ \a1 -> do
+      withAsync (getURL url2) $ \a2 -> do
+          page1 <- wait a1
+          page2 <- wait a2
+          pure (page1, page2)
 ```
 
 # Transactions & STM монада
@@ -157,6 +166,15 @@ orElse    :: STM a -> STM a -> STM a -- if first retries then call second
 
 throwSTM  :: Exception e => e -> STM a
 catchSTM  :: Exception e => STM a -> (e -> STM a) -> STM a
+
+transfer :: Integer -> Account -> Account -> STM ()
+transfer amount from to = do
+    fromVal <- readTVar from
+    if (fromVal - amount) >= 0
+        then do
+               debit amount from
+               credit amount to
+        else retry
 ```
 
 ### retry

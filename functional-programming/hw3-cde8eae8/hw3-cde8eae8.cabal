@@ -41,6 +41,7 @@ library
     , directory
     , lens
     , filepath
+    , extra
   default-language: Haskell2010
 
 executable hw3-cde8eae8-exe

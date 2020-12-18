@@ -1,11 +1,26 @@
 {-# LANGUAGE FlexibleContexts #-}
-module Commands (FileManagerError(..), cd, ls, mkdir) where
+module Commands 
+  ( FileManagerError(..)
+  , cdCommand
+  , lsCommand
+  , mkdirCommand
+  , rmdirCommand
+  , mkfileCommand
+  , rmfileCommand
+  , findCommand
+  , catCommand
+  , writeCommand
+  ) where
 
 import Control.Exception 
-import Control.Monad.Except
+import Control.Applicative
+import Control.Monad.Extra
+import Data.Maybe
+import Data.List
 import FS
 import FileManagerEnv
 import System.FilePath
+import Prelude hiding (readFile, writeFile)
 
 data FileManagerError = PathDoesNotExists FilePath
                       | BadArguments [String]
@@ -13,40 +28,68 @@ data FileManagerError = PathDoesNotExists FilePath
 
 instance Exception FileManagerError
 
-cd 
-  :: ( FS m
-     , ModifyEnv m
-     ) 
-  => [String] 
-  -> m ()
-cd [path] = do
+applyRelativelyWorkingPath  :: (ModifyEnv m) => (FilePath -> m a) -> FilePath -> m a
+applyRelativelyWorkingPath f path = do
   workDir <- getRealPathToCurrentDir 
-  let newPath = workDir </> path
-  exists <- existsDirectory newPath
-  if exists
-    then setCurrentDir newPath
-    else throw $ PathDoesNotExists path
-cd args = throw $ BadArguments args
+  f (workDir </> path)
 
-ls 
-  :: ( FS m
-     , ModifyEnv m
-     ) 
-  => [String] 
-  -> m [FilePath]
-ls [] = ls ["."]
-ls [path] = do
-  workDir <- getRealPathToCurrentDir 
-  listDirectory (workDir </> path)
-ls args = throw $ BadArguments args
+cdCommand :: (FS m, ModifyEnv m) => [String] -> m ()
+cdCommand [path] = flip applyRelativelyWorkingPath path $
+    \realPath -> do
+      exists <- existsDirectory realPath
+      if exists
+        then setCurrentDir realPath
+        else throw $ PathDoesNotExists realPath
+cdCommand args = throw $ BadArguments args
 
-mkdir
-  :: ( FS m
-     , ModifyEnv m
-     ) 
-  => [String] 
-  -> m ()
-mkdir [path] = do
-  workDir <- getRealPathToCurrentDir 
-  createDirectory (workDir </> path)
-mkdir args = throw $ BadArguments args
+lsCommand :: (FS m, ModifyEnv m) => [String] -> m [FilePath]
+lsCommand [] = lsCommand ["."]
+lsCommand [path] = applyRelativelyWorkingPath listDirectory path
+lsCommand args = throw $ BadArguments args
+
+mkdirCommand :: (FS m, ModifyEnv m) => [String] -> m ()
+mkdirCommand [path] = applyRelativelyWorkingPath createDirectory path
+mkdirCommand args = throw $ BadArguments args
+
+rmdirCommand :: (FS m, ModifyEnv m) => [String] -> m ()
+rmdirCommand [path] = applyRelativelyWorkingPath removeDirectory path
+rmdirCommand args = throw $ BadArguments args
+
+mkfileCommand :: (FS m, ModifyEnv m) => [String] -> m ()
+mkfileCommand [path] = applyRelativelyWorkingPath createFile path
+mkfileCommand args = throw $ BadArguments args
+
+rmfileCommand :: (FS m, ModifyEnv m) => [String] -> m ()
+rmfileCommand [path] = applyRelativelyWorkingPath removeFile path
+rmfileCommand args = throw $ BadArguments args
+
+catCommand :: (FS m, ModifyEnv m) => [String] -> m String
+catCommand [path] = applyRelativelyWorkingPath readFile path
+catCommand args = throw $ BadArguments args
+
+writeCommand :: (FS m, ModifyEnv m) => [String] -> m ()
+writeCommand [path, text] = applyRelativelyWorkingPath (flip writeFile text) path
+writeCommand args = throw $ BadArguments args
+
+findCommand :: (FS m, ModifyEnv m) => [String] -> m (Maybe FilePath)
+findCommand [name] = do
+  workingDirectory <- getRealPathToCurrentDir 
+  findFile name workingDirectory 
+  where 
+    findFile :: (Monad m, FS m) => String -> FilePath -> m (Maybe FilePath)
+    findFile name path = do
+      entries <- listDirectory path
+      let isTargetFile = 
+            \someName -> (someName == name &&) <$> existsFile (path </> someName) 
+      liftM2 (<|>) (findM isTargetFile entries) 
+                   (recursiveFoundFileCall path entries)
+      where
+        recursiveFoundFileCall 
+          :: (Monad m, FS m) 
+          => String
+          -> [FilePath] 
+          -> m (Maybe FilePath)
+        recursiveFoundFileCall path entries = do
+          dirs <- filterM existsDirectory ((path </>) <$> entries)
+          join . find isJust <$> mapM (findFile name) dirs 
+findCommand args = throw $ BadArguments args

@@ -20,15 +20,14 @@ parseCommand command =
   where x = words command
 
 executeCommand :: String -> [String] -> FileManager ()
-executeCommand command args = do
+executeCommand command args = void $ do
   case command of
-    "cd" -> cd args
+    "cd" -> cdCommand args
     "ls" -> do
-      files <- ls args
+      files <- lsCommand args
       liftIO $ putStrLn $ intercalate "\n" files
     --"mkdir" -> mkdir args
     _ -> error "bad command" -- TODO
-  return ()
 
 runFS :: FileManager m -> Env -> IO (Env, m)
 runFS fm env = do
@@ -43,17 +42,11 @@ wrapExceptions
 wrapExceptions fm = do 
   envRef <- ask
   env <- liftIO $ readIORef envRef
-  --(env, res) <- liftIO $ catch (fmap (second Right) (runFS fm env))
-  --        (\e -> do
-  --          env2 <- readIORef envRef
-  --          return (env2, Left e)
-  --        )
-  v <- (liftIO $ try (runFS fm env))
-  case v of
-    Left e -> return $ Left e
-    Right (modifiedEnv, res) -> do
-      liftIO $ writeIORef envRef modifiedEnv
-      return $ Right res
+  liftIO $ try $
+    do
+      (modifiedEnv, res) <- runFS fm env
+      writeIORef envRef modifiedEnv
+      return res
 
 -- А что если 
 -- cd 
@@ -73,7 +66,7 @@ wrapExceptions fm = do
 -- + у нас есть тайпклассы на них
 mainLoop :: FileManager ()
 mainLoop = do
-  forever $ do
+  forever $ void $ do
     liftIO $ putStr ">>"
     liftIO $ hFlush stdout
     rawCommand <- liftIO getLine
@@ -81,15 +74,12 @@ mainLoop = do
     v <- wrapExceptions (executeCommand command args) 
     case v of 
       Left e -> liftIO $ print e
-      Right _ -> return ()
+      _      -> return ()
     stateRef <- ask
     state <- liftIO $ readIORef stateRef
     liftIO $ print state
-    return ()
 
 main :: IO ()
-main = do
-  -- v <- evalStateT (runReaderT (runExceptT mainLoop) "") ""
+main = void $ do
   runFS mainLoop (Env "" "")
-  return ()
 
