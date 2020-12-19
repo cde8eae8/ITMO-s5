@@ -42,6 +42,7 @@ library
     , lens
     , filepath
     , extra
+    , strict-io
   default-language: Haskell2010
 
 executable hw3-cde8eae8-exe
@@ -58,6 +59,7 @@ executable hw3-cde8eae8-exe
     , directory
     , errors
     , extra
+    , threepenny-gui
   default-language: Haskell2010
 
 test-suite hw3-cde8eae8-test

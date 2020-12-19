@@ -28,6 +28,11 @@ data FileManagerError = PathDoesNotExists FilePath
 
 instance Exception FileManagerError
 
+data DirectoryEntry = Directory String
+                    | File String
+                    deriving (Show, Eq, Ord)
+
+
 applyRelativelyWorkingPath  :: (ModifyEnv m) => (FilePath -> m a) -> FilePath -> m a
 applyRelativelyWorkingPath f path = do
   workDir <- getRealPathToCurrentDir 
@@ -44,7 +49,16 @@ cdCommand args = throw $ BadArguments args
 
 lsCommand :: (FS m, ModifyEnv m) => [String] -> m [FilePath]
 lsCommand [] = lsCommand ["."]
-lsCommand [path] = applyRelativelyWorkingPath listDirectory path
+lsCommand [path] = 
+  flip applyRelativelyWorkingPath path $ \path -> do
+    paths <- listDirectory path -- paths :: [FilePath]
+    catMaybes <$> mapM 
+      (\path -> if existsFile path then Just path else Nothing)
+      paths
+    return paths
+    --catMaybes <$> mapM (\path -> if existsFile path then Just path else Nothing)
+    --  <$> listDirectory path
+    
 lsCommand args = throw $ BadArguments args
 
 mkdirCommand :: (FS m, ModifyEnv m) => [String] -> m ()
