@@ -43,12 +43,16 @@ library
     , filepath
     , extra
     , strict-io
+    , time
+    , MissingH
   default-language: Haskell2010
 
 executable hw3-cde8eae8-exe
   main-is: Main.hs
   other-modules:
       Paths_hw3_cde8eae8
+    , GUI
+    , Console
   hs-source-dirs:
       app
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
@@ -60,6 +64,8 @@ executable hw3-cde8eae8-exe
     , errors
     , extra
     , threepenny-gui
+    , sort
+    , filepath
   default-language: Haskell2010
 
 test-suite hw3-cde8eae8-test
@@ -78,4 +84,11 @@ test-suite hw3-cde8eae8-test
     , rosezipper
     , containers
     , filepath
+    , time
+    , tasty
+    , hspec
+    , HUnit
+    , tasty-hspec
+    , transformers
+    , sort
   default-language: Haskell2010

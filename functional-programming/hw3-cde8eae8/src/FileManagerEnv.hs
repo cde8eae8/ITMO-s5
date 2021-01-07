@@ -3,6 +3,7 @@ module FileManagerEnv
   , ModifyEnv(..)
   , setCurrentDir
   , getRealPathToCurrentDir
+  , getRealPathToCurrentDirFromEnv 
   ) where
 
 import System.FilePath
@@ -22,4 +23,10 @@ setCurrentDir path = do
 getRealPathToCurrentDir :: (ModifyEnv m) => m String
 getRealPathToCurrentDir = do
   env <- modifyEnv id 
-  return $ envRootDirectory env </> envCurrentDirectory env
+  return $ getRealPathToCurrentDirFromEnv env
+
+getRealPathToCurrentDirFromEnv :: Env -> String
+getRealPathToCurrentDirFromEnv env = 
+  let result = envRootDirectory env </> envCurrentDirectory env in
+    if result == "" then "." else result
+

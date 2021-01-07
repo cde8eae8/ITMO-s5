@@ -3,6 +3,7 @@
 module FileManager (FileManager, runFileManager) where
 import FS
 import Data.IORef
+import Data.Maybe
 import FileManagerEnv
 import Control.Monad.Except
 import Control.Monad.Reader
@@ -25,18 +26,6 @@ instance ModifyEnv FileManager where
     newRef <- ask
     liftIO $ readIORef newRef
 
---instance HasRootDirectory (FileManager m) String where
---  -- (String -> f String) -> Env -> f Env 
---  -- (String -> f String) -> FileManager -> f FileManager 
---  rootDirectory modifyField = do
---    env <- ask
---    modifyIORef env modifyField
-
-
---tryFS :: FS a -> StateT String IO (Either IOException a)
---tryFS = do
---  st <- lift get
-
 instance FS FileManager where
   createDirectory path = lift $ Dir.createDirectory path
 
@@ -52,6 +41,20 @@ instance FS FileManager where
 
   listDirectory path = lift $ Dir.listDirectory path
 
-  --readFile path = do
-  --  SIO.readFile path
+  readFile path = do
+    liftIO $ SIO.run $ SIO.readFile path
 
+  writeFile path content = do
+    liftIO $ SIO.run $ SIO.writeFile path content
+
+  getPermissions path = do
+    perm <- lift $ Dir.getPermissions path
+    return $ catMaybes 
+      [ Read <$ (guard $ readable perm :: Maybe ())
+      , Write <$ (guard $ writable perm :: Maybe ())
+      , Execute <$ (guard $ executable perm :: Maybe ())
+      ]
+  
+  getFileSize path = lift $ Dir.getFileSize path
+
+  getModificationTime path = lift $ Dir.getModificationTime path
