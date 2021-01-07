@@ -1,0 +1,80 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.33.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 53f1c97dde4a08b2a8d34cc5cc79afed0ff72fdc62cd4575504b8737fe373364
+
+name:           hw4-cde8eae8
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/hw4-cde8eae8#readme>
+homepage:       https://github.com/githubuser/hw4-cde8eae8#readme
+bug-reports:    https://github.com/githubuser/hw4-cde8eae8/issues
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2020 Author name here
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/hw4-cde8eae8
+
+library
+  exposed-modules:
+      Covid
+      Filesystem
+      Halyava
+      HalyavaShow
+      Point
+  other-modules:
+      Paths_hw4_cde8eae8
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , comonad
+    , microlens
+    , mtl
+    , random
+  default-language: Haskell2010
+
+executable hw4-cde8eae8-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_hw4_cde8eae8
+    , CovidConsole
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , hw4-cde8eae8
+    , mtl
+  default-language: Haskell2010
+
+test-suite hw4-cde8eae8-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_hw4_cde8eae8
+    , PointTest
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , criterion
+    , deepseq
+    , hw4-cde8eae8
+    , hspec
+    , HUnit
+    , tasty
+    , tasty-hunit
+    , tasty-hspec
+  default-language: Haskell2010
