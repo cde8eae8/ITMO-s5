@@ -28,7 +28,6 @@ source-repository head
 library
   exposed-modules:
       Covid
-      Filesystem
       Halyava
       HalyavaShow
       Point
@@ -39,6 +38,7 @@ library
   build-depends:
       base >=4.7 && <5
     , comonad
+    , ListZipper
     , microlens
     , mtl
     , random
@@ -51,7 +51,12 @@ executable hw4-cde8eae8-exe
     , CovidConsole
   hs-source-dirs:
       app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options:
+    -Wall
+    -O2
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N6
   build-depends:
       base >=4.7 && <5
     , hw4-cde8eae8
@@ -64,6 +69,7 @@ test-suite hw4-cde8eae8-test
   other-modules:
       Paths_hw4_cde8eae8
     , PointTest
+    , HalyavaTest
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N

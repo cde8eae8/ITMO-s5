@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -8,11 +9,8 @@
 module Halyava 
   ( Halyava(..)
   , HsVar(..)
-  , example
   , fibNumbers
   , runInterpret
-  --, Sh(..)
-  --, toString
   ) where
 
 import Data.IORef
@@ -20,11 +18,18 @@ import Control.Monad
 
 newtype HsVar a info = HsVar (info a)
 
-class (Num a, Show a) => HsNumber a where
+newtype HsNumber = 
+  HsNumber Double 
+  deriving 
+    ( Num
+    , Fractional
+    , Floating
+    , Eq
+    , Ord
+    )
 
-instance HsNumber Int where
-
-instance HsNumber Double where
+instance Show HsNumber where
+  show (HsNumber n) = show n
 
 class Halyava info expr | expr -> info where
   -- init with some literal
@@ -36,22 +41,7 @@ class Halyava info expr | expr -> info where
   hsValue   :: HsVar a info -> expr a
   hsLiteral :: (Show a) => a -> expr a
 
-  --hsFun2 
-  --  :: (HsVar a info -> HsVar b info -> HsVar res info -> expr ()) 
-  --  -> expr (a -> b -> res)
-  --hsFunCall2 :: expr (a -> b -> c) -> expr a -> expr b -> expr c 
-
-  -- ??
-  --hsFun1 
-  --  :: (HsVar a info -> HsVar res info -> expr ()) 
-  --  -> expr (HsVar a info -> HsRet res info -> expr res)
-  --hsFunCall1 
-  --  :: expr (HsVar a info -> HsRet res info -> expr res) 
-  --  -> expr a 
-  --  -> expr res 
-  -- how ??
-  --hsReturn :: HsRet res info -> expr a -> expr ()
-
+  infixl 1 #
   (#)       :: expr () -> expr () -> expr ()
   hsWhile   :: expr Bool -> expr () -> expr ()
   hsIf      :: expr Bool -> expr () -> expr ()
@@ -59,16 +49,16 @@ class Halyava info expr | expr -> info where
 
   hsPrint :: (Show a) => expr a -> expr () 
 
+  infixl 2 @= 
   (@=) :: HsVar a info -> expr a -> expr ()
 
-  -- ??
-  (@+) :: (HsNumber a) => expr a -> expr a -> expr a
-  (@-) :: (HsNumber a) => expr a -> expr a -> expr a
-  (@*) :: (HsNumber a) => expr a -> expr a -> expr a
-  (@/) :: (HsNumber a) => expr a -> expr a -> expr a
-  hsAbs     :: (HsNumber a) => expr a -> expr a
-  hsSignum  :: (HsNumber a) => expr a -> expr a
-  hsNegate  :: (HsNumber a) => expr a -> expr a
+  (@+) :: expr HsNumber -> expr HsNumber -> expr HsNumber
+  (@-) :: expr HsNumber -> expr HsNumber -> expr HsNumber
+  (@*) :: expr HsNumber -> expr HsNumber -> expr HsNumber
+  (@/) :: expr HsNumber -> expr HsNumber -> expr HsNumber
+  hsAbs     :: expr HsNumber -> expr HsNumber
+  hsSignum  :: expr HsNumber -> expr HsNumber
+  hsNegate  :: expr HsNumber -> expr HsNumber
 
   (@==) :: (Eq a) => expr a -> expr a -> expr Bool
   (@/=) :: (Eq a) => expr a -> expr a -> expr Bool
@@ -83,10 +73,10 @@ class Halyava info expr | expr -> info where
   (@!)  :: expr Bool -> expr Bool 
 
   (@++) :: expr String -> expr String -> expr String
-  hsIth :: expr Int -> expr Char
+  hsIth :: expr String -> expr Int -> expr Char 
   hsToString :: (Show a) => expr a -> expr String
 
-instance forall info expr a . (Halyava info expr, HsNumber a) => Num (expr a) where
+instance forall info expr . (Halyava info expr) => Num (expr HsNumber) where
   (+) = (@+)
   (*) = (@*)
   abs = hsAbs
@@ -118,39 +108,18 @@ instance Halyava InterpretVarInfo Interpreter where
   hsValue (HsVar info) = Interpreter $ readIORef $ varRef info
 
   hsLiteral = Interpreter . return
-  -- FIXME: Writeonly type for return value?
-
-  --hsFun1 
-  --  :: (HsVar a info -> HsVar res info -> expr ()) 
-  --  -> expr (a -> res)
-  --hsFun1 body = Interpreter $ do
-  --  return (\a -> body a (HsVar (InterpretVarInfo ref)))
-  --hsFun2 
-  --  :: (HsVar a info -> HsVar b info -> HsVar res info -> expr ()) 
-  --  -> expr (a -> b -> res)
-  ---- ??
-  --hsFunCall1 :: expr (a -> b) -> expr a -> expr b 
-  --hsFunCall1 func arg = 
-  --  f <- func
-  --  ref <- newIORef undefined
-  --hsFunCall2 :: expr (a -> b -> c) -> expr a -> expr b -> expr c 
-
-  --(#)       :: expr () -> expr () -> expr ()
   prev # cur = Interpreter $ interpret prev >> interpret cur
   
-  --hsWhile   :: expr Bool -> expr () -> expr ()
   hsWhile condition body = Interpreter $ do
     cond <- interpret condition
     when cond $ do
       interpret body
       interpret $ hsWhile condition body
   
-  --hsIf      :: expr Bool -> expr () -> expr ()
   hsIf condition trueBody = Interpreter $ do
     cond <- interpret condition
     when cond $ interpret trueBody
 
-  --hsIfElse  :: expr Bool -> expr () -> expr () -> expr ()
   hsIfElse condition trueBody falseBody = Interpreter $ do
     cond <- interpret condition
     if cond
@@ -165,7 +134,7 @@ instance Halyava InterpretVarInfo Interpreter where
   (@+) = liftInterpret2 (+) 
   (@*) = liftInterpret2 (*) 
   (@-) = liftInterpret2 (-) 
-  --lhs @/ rhs = Interpreter $ liftM2 (/) (interpret lhs) (interpret rhs)
+  (@/) = liftInterpret2 (/) 
 
   hsAbs = liftInterpret abs
   hsSignum = liftInterpret signum
@@ -185,74 +154,38 @@ instance Halyava InterpretVarInfo Interpreter where
 
   (@++) = liftInterpret2 (++) 
   hsToString = liftInterpret show
+  hsIth = liftInterpret2 (!!)
 
---example :: forall info expr a . (Show a, Num a, Ord a, Num (expr a)) 
---        => Halyava info expr => expr a
-
---   TODO: fix instances
---   TODO: undefined as value of variables
-
-fibNumbers :: (Halyava exprInfo expr) => Int -> expr ()
---fibNumbers :: Int -> Interpreter ()
+fibNumbers :: (Halyava exprInfo expr) => HsNumber -> expr ()
 fibNumbers fibN = 
-  hsDefVarL (0 :: Int) $ \f1 -> 
-  hsDefVarL (1 :: Int) $ \f2 ->
-  hsDefVarL (0 :: Int) $ \n ->
+  -- numbers
+  hsDefVarL 0 $ \f1 -> 
+  hsDefVarL 1 $ \f2 ->
+  hsDefVarL 0 $ \n ->
   hsWhile (hsValue n @<= hsLiteral fibN) (
     hsDefVar (hsValue f1 @+ hsValue f2) $ \next -> 
-    (f1 @= hsValue f2) #
-    (f2 @= hsValue next) #
-    (n @= (hsValue n @+ hsLiteral 1))
-  ) #
-  hsPrint 
-    (hsToString (hsLiteral fibN) @++ 
+    f1 @= hsValue f2 #
+    f2 @= hsValue next #
+    n @= hsValue n @+ hsLiteral 1
+  ) 
+  #
+  -- strings
+  hsDefVarL "!" (\stringVariable ->
+  hsPrint (hsToString (hsLiteral fibN) @++ 
     hsLiteral "-th fibonacci number is " @++ 
-    hsToString (hsValue f1))
+    hsToString (hsValue f1) @++ hsValue stringVariable))
+  #
+  -- bools
+  hsDefVar (hsValue n @>= hsLiteral 10) (\boolVar ->
+  hsDefVarL True $ \boolVar2 ->
+    hsPrint 
+      (hsToString (hsValue boolVar) @++ 
+      hsLiteral " && " @++ 
+      hsToString (hsValue boolVar2) @++
+      hsLiteral " = " @++
+      hsToString (hsValue boolVar @&& hsValue boolVar2)
+      ))
   
 runInterpret :: Interpreter a -> IO a
 runInterpret (Interpreter actions) = actions
 
-
---example :: (Halyava exprInfo expr) => expr ()
-example :: Interpreter ()
-example = 
-  --hsDefVar (0 :: Int) $ \a -> a @= 0
-  hsDefVarL (0 :: Int) $ \a -> 
-  hsDefVar (hsValue a + 3) $ \b -> 
-    hsDefVarL 0 (\d -> 
-        d @= hsValue a
-    ) #
-    hsDefVarL (0.0 :: Double) (\d -> 
-        d @= (hsValue d + hsValue d + hsLiteral 2.5)
-    ) #
-    hsDefVarL "123" (\d -> 
-        d @= (hsValue d @++ hsValue d @++ hsLiteral "123") 
-    ) #
-    hsDefVarL 0 (\d -> 
-        d @= hsValue a
-    ) #
-    --3 #
-    (b @= 0) # 
-    hsWhile (hsValue a @> hsValue b) (
-      hsDefVarL 0 $ \c -> 
-        (a @= 0) #
-        (b @= 0) #
-        (b @= (hsValue a + hsValue a + 10 + 20 + 30)) #
-        (b @= 0) #
-        (b @= 0) #
-        (b @= 0) #
-        (b @= 0) #
-        (b @= 0) #
-        hsWhile (hsValue c @> hsValue b) (
-          hsDefVarL 0 (\d -> 
-              d @= hsValue a
-          ) #
-          (c @= 1) #
-          (b @= 0) #
-          (b @= 0) #
-          (b @= 0) #
-          (b @= 0) #
-          (b @= 0) #
-          (b @= 0)
-        )
-    )
