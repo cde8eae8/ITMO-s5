@@ -42,7 +42,7 @@
 
 
 // Unqualified %code blocks.
-#line 20 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
+#line 20 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
 
 namespace yy
 {
@@ -52,9 +52,9 @@ namespace yy
         std::cerr << msg << '\n';
     }
 }
-#line 31 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
+#line 31 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
  
-#line 82 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
+#line 82 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
 
 namespace yy {
         // Return the next token.
@@ -90,7 +90,7 @@ namespace yy {
         }
     }
 
-#line 94 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
+#line 94 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
 
 
 #ifndef YY_
@@ -163,7 +163,7 @@ namespace yy {
 #define YYRECOVERING()  (!!yyerrstatus_)
 
 namespace yy {
-#line 167 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
+#line 167 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
 
   /// Build a parser object.
   parser::parser ()
@@ -632,55 +632,55 @@ namespace yy {
           switch (yyn)
             {
   case 3: // StartNonterminal: '@' identifier
-#line 39 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
+#line 39 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
                                  { startNonterminal = yystack_[0].value.as < std::string > (); }
-#line 638 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
+#line 638 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
     break;
 
   case 6: // Type: identifier '<' identifier '>'
-#line 48 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
+#line 48 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
                                 { identifiers.insert(std::make_pair(yystack_[3].value.as < std::string > (), yystack_[1].value.as < std::string > ())); }
-#line 644 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
+#line 644 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
     break;
 
   case 9: // Nonterminal: identifier Rules ';'
-#line 57 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
+#line 57 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
                          { rawGrammar.insert(std::make_pair(yystack_[2].value.as < std::string > (), yystack_[1].value.as < std::vector<RawRule> > ())); }
-#line 650 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
+#line 650 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
     break;
 
   case 10: // Rules: Rule
-#line 61 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
+#line 61 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
         { yylhs.value.as < std::vector<RawRule> > () = std::vector<RawRule>{std::move(yystack_[0].value.as < RawRule > ())}; }
-#line 656 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
+#line 656 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
     break;
 
   case 11: // Rules: Rules Rule
-#line 62 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
+#line 62 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
               { yystack_[1].value.as < std::vector<RawRule> > ().push_back(yystack_[0].value.as < RawRule > ()); yylhs.value.as < std::vector<RawRule> > () = std::move(yystack_[1].value.as < std::vector<RawRule> > ()); }
-#line 662 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
+#line 662 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
     break;
 
   case 12: // Rule: '|' Tokens code
-#line 66 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
+#line 66 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
                    { yylhs.value.as < RawRule > () = RawRule{std::move(yystack_[1].value.as < std::vector<std::string> > ()), std::move(yystack_[0].value.as < std::string > ())}; }
-#line 668 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
+#line 668 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
     break;
 
   case 13: // Tokens: identifier
-#line 70 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
+#line 70 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
               { yylhs.value.as < std::vector<std::string> > () = std::vector<std::string>{yystack_[0].value.as < std::string > ()}; }
-#line 674 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
+#line 674 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
     break;
 
   case 14: // Tokens: Tokens identifier
-#line 71 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
+#line 71 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
                      { yystack_[1].value.as < std::vector<std::string> > ().push_back(yystack_[0].value.as < std::string > ()); yylhs.value.as < std::vector<std::string> > () = std::move(yystack_[1].value.as < std::vector<std::string> > ()); }
-#line 680 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
+#line 680 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
     break;
 
 
-#line 684 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
+#line 684 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
 
             default:
               break;
@@ -987,5 +987,5 @@ namespace yy {
 
 
 } // yy
-#line 991 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
+#line 991 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
 
