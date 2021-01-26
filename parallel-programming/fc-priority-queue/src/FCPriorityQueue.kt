@@ -3,7 +3,6 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.atomic.AtomicReferenceArray
-import java.util.concurrent.locks.ReentrantLock
 
 enum class OperationType {
     ADD, PEEK, POLL
@@ -17,7 +16,7 @@ class Operation<E>(v: E, opType: OperationType) {
 
 class FCPriorityQueue<E : Comparable<E>> {
     private val q = PriorityQueue<E>()
-    private val lock = ReentrantLock()
+    private val lock = atomic(false)
     private val rand = Random()
     private val operations = AtomicReferenceArray<Operation<E?>>(3)
 
@@ -57,7 +56,7 @@ class FCPriorityQueue<E : Comparable<E>> {
     private fun run(op: Operation<E?>) {
         var operationIdx = -1;
         while (true) {
-            if (lock.tryLock()) {
+            if (lock.compareAndSet(false, true)) {
                 try {
                     if (operationIdx != -1) {
                         operations.set(operationIdx, null)
@@ -67,7 +66,8 @@ class FCPriorityQueue<E : Comparable<E>> {
                     }
                     combine()
                 } finally {
-                    lock.unlock()
+                    lock.value = false;
+                    // lock.unlock()
                 }
                 return
             } else {

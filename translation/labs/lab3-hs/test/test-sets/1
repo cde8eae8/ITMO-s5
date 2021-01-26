@@ -1,0 +1,30 @@
+int size = str.length();
+int i = 0;
+beg = 0;
+for (i = 0; i < size;) {
+    //System.out.println(size + " " + i);
+    char c = str.charAt(i);
+
+    if (!(Character.isLetter(c) || Character.getType(c) == Character.DASH_PUNCTUATION || c == '\'')) {
+          if (isWord) {
+                pos++;
+                //System.out.println(str.substring(beg, i));
+                //System.out.println(beg + " " +  i + " ");
+                //System.out.println(str.substring(beg, i));
+                Counter3.increment(str.substring(beg, i).toLowerCase(), pos);
+          }
+          isWord = false;
+
+    } else {
+          if (!isWord) {
+                beg = i;
+                isWord = true;
+          }
+    }
+    i++;
+}
+if (isWord && beg != size - 1) {
+    pos++;
+    Counter3.increment(str.substring(beg, str.length()).toLowerCase(), pos);
+}
+//Counter3.print();

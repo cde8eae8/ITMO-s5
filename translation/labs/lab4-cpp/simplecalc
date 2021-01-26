@@ -1,0 +1,18 @@
+some<type>
+
+@ E
+
+E {
+    | M
+}
+
+M {
+    | M mul V
+    | V
+}
+
+V {
+    | lBracket E rBracket
+    | identifier
+}
+

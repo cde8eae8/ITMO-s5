@@ -16,15 +16,21 @@ tokens :-
     \)                              { tok TokRBracket }
     \}                              { tok TokRBrace }
     \{                              { tok TokLBrace }
+    "[]"                            { tok TokArray }
     "."                             { tok TokDot }
     ","                             { tok TokComma }
     ";"                             { tok TokDotComma }
     "if"                            { tok TokIf }
     "else"                          { tok TokElse }
     "while"                         { tok TokWhile }
+    "class"                         { tok TokClass }
+    "import"                         { tok TokImport }
+    "public"                        { \_ s -> TokAttribute s }
+    "static"                        { \_ s -> TokAttribute s }
+    "new"                           { tok TokNew }
     "="                             { tok TokAssign }
-    $digit+                         { \_ s -> TokIntLiteral s }
-    "+"|"-"|"*"|"/"|"=="|"!="|"&"|"|"|"^"|"&&"|"||"
+    $digit+                         { \_ s -> TokLiteral s }
+    "+"|"-"|"*"|"/"|"=="|"!="|"&"|"|"|"^"|"&&"|"||"|">="|"<="|">"|"<"
                                     { \_ s -> TokSign (s) }
     $alpha [$alpha $digit \_]*      { \_ s -> TokIdentifier s }
 
@@ -34,8 +40,7 @@ tok :: Token -> AlexPosn -> String -> Token
 tok t = (\_ _ -> t)
 
 -- The token type:
-data Token = TokIntLiteral String
-           | TokStringLiteral String
+data Token = TokLiteral String
            | TokIdentifier String
            | TokSign String
            | TokIf 
@@ -44,6 +49,7 @@ data Token = TokIntLiteral String
            | TokWhile
            | TokLBracket
            | TokRBracket
+           | TokArray
            | TokLBrace
            | TokRBrace
            | TokDot 
@@ -51,6 +57,10 @@ data Token = TokIntLiteral String
            | TokDotComma 
            | TokEOF
            | TokAssign
+           | TokClass
+           | TokImport
+           | TokAttribute String
+           | TokNew 
            deriving (Eq,Show)
 }
 

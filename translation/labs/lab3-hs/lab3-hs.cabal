@@ -45,6 +45,7 @@ library
       base >=4.7 && <5
     , array
     , containers
+    , extra
     , mtl
     , random
     , string-random
@@ -63,6 +64,7 @@ executable lab3-hs-exe
     , lab3-hs
     , mtl
     , containers
+    , random
   default-language: Haskell2010
 
 test-suite lab3-hs-test

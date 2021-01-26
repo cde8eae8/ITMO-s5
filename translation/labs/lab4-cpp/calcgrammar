@@ -1,0 +1,28 @@
+Expression<int>
+AddSub<int>
+MulDiv<int>
+Var<int>
+
+@ Expression
+
+Expression
+    | AddSub { return _1; }
+    ;
+
+AddSub
+    | AddSub plus MulDiv { return _1 + _3; }
+    | AddSub minus MulDiv { return _1 - _3; }
+    | MulDiv { return _1; }
+    ;
+
+MulDiv
+    | MulDiv mul Var { return _1 * _3; }
+    | MulDiv div Var { return _1 / _3; }
+    | Var { return _1; }
+    ;
+
+Var
+    | lBracket Expression rBracket { return _2; }
+    | identifier { return std::stoi(_1); }
+    ;
+

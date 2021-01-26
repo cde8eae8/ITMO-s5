@@ -1,0 +1,12 @@
+some<type>
+
+@ S
+
+S {
+    | C C
+}
+
+C {
+    | c C
+    | d
+}

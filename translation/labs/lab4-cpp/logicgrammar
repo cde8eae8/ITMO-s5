@@ -1,0 +1,72 @@
+Expression<Tree*>
+Xor<Tree*>
+Or<Tree*>
+And<Tree*>
+Not<Tree*>
+Var<Tree*>
+
+@ Expression
+
+Expression
+    | Xor { return _1; }
+    ;
+
+Xor
+    | Xor xor Or {
+        Tree* tree = new Tree("X");
+        tree->addChild(_1);
+        tree->addChild("^");
+        tree->addChild(_3);
+        return tree;
+    }
+    | Or { return _1; }
+    ;
+
+Or
+    | Or or And {
+        Tree* tree = new Tree("O");
+        tree->addChild(_1);
+        tree->addChild("|");
+        tree->addChild(_3);
+        return tree;
+    }
+    | And { return _1; }
+    ;
+
+And
+    | And and Not {
+        Tree* tree = new Tree("A");
+        tree->addChild(_1);
+        tree->addChild("&");
+        tree->addChild(_3);
+        return tree;
+    }
+    | Not { return _1; }
+    ;
+
+Not
+    | not Var {
+        Tree* tree = new Tree("N");
+        tree->addChild("!");
+        tree->addChild(_2);
+        return tree;
+    }
+    | Var {
+        return _1;
+    }
+    ;
+
+Var
+    | lBracket Expression rBracket {
+        Tree* tree = new Tree("V");
+        tree->addChild("(");
+        tree->addChild(_2);
+        tree->addChild(")");
+        return tree;
+    }
+    | identifier {
+        Tree* tree = new Tree("V");
+        tree->addChild(_1);
+        return tree;
+    }
+    ;
