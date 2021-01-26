@@ -14,6 +14,7 @@
     extern std::map<std::string, std::string> identifiers;
     extern std::unordered_map<std::string, std::vector<RawRule>> rawGrammar;
     extern std::string startNonterminal;
+    extern std::string header;
 }
 
 %code
@@ -33,7 +34,7 @@ namespace yy
 %%
 
 SourceFile:
-  Types StartNonterminal Nonterminals
+  code Types StartNonterminal Nonterminals { header = $1; }
   ;
 
 StartNonterminal: '@' identifier { startNonterminal = $2; }

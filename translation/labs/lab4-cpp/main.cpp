@@ -62,6 +62,7 @@ std::unordered_map<std::string, std::vector<std::vector<std::string>>> testGramm
 std::map<std::string, std::string> identifiers;
 std::unordered_map<std::string, std::vector<RawRule>> rawGrammar;
 std::string startNonterminal;
+std::string header;
 
 std::ostream &operator<<(std::ostream &out, RawRule const &rule) {
     out << rule.body << " " << rule.code << std::endl;
@@ -69,8 +70,6 @@ std::ostream &operator<<(std::ostream &out, RawRule const &rule) {
 }
 
 int main(int argc, char** argv) {
-//    rawGrammar = std::make_unique<std::map<std::string, std::string>>();
-//    identifiers = std::make_unique<std::unordered_map<std::string, std::vector<std::vector<std::string>>>>();
     if (argc == 1) {
         std::cout << "args" << std::endl;
         return 1;
@@ -82,7 +81,6 @@ int main(int argc, char** argv) {
         std::cout << p.first << " : " << p.second << std::endl;
     }
     identifiers.insert(std::make_pair("S'", identifiers[startNonterminal]));
-    convertGrammar(argv[1], rawGrammar, identifiers);
-//    CalcLexer lex{"a + b + c * (d + a * k)"};
+    convertGrammar(argv[1], header, rawGrammar, identifiers);
     return 0;
 }

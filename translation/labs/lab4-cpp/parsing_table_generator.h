@@ -15,10 +15,12 @@
 #include <iostream>
 
 
+
 //ParsingTable generateParsingTable(std::vector<GrammarSymbol> const &grammar);
 
 struct RawRule;
 void convertGrammar(std::string const& file,
+                    std::string const& header,
                     std::unordered_map<std::string, std::vector<RawRule>> const& rawGrammar,
                     std::map<std::string, std::string> const& types);
 

@@ -32,7 +32,7 @@
 
 
 /**
- ** \file /home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.hpp
+ ** \file /home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.hpp
  ** Define the yy::parser class.
  */
 
@@ -42,10 +42,10 @@
 // especially those whose name start with YY_ or yy_.  They are
 // private implementation details that can be changed or removed.
 
-#ifndef YY_YY_HOME_NIKITA_IFMO_SEM5_ITMO_S5_TRANSLATION_LABS_LAB4_CPP_GRAM_HPP_INCLUDED
-# define YY_YY_HOME_NIKITA_IFMO_SEM5_ITMO_S5_TRANSLATION_LABS_LAB4_CPP_GRAM_HPP_INCLUDED
+#ifndef YY_YY_HOME_NIKITA_IFMO_SEM5_TRANSLATION_LABS_LAB4_CPP_GRAM_HPP_INCLUDED
+# define YY_YY_HOME_NIKITA_IFMO_SEM5_TRANSLATION_LABS_LAB4_CPP_GRAM_HPP_INCLUDED
 // "%code requires" blocks.
-#line 7 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
+#line 7 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
 
     #include <vector>
     #include <string>
@@ -56,8 +56,9 @@
     extern std::map<std::string, std::string> identifiers;
     extern std::unordered_map<std::string, std::vector<RawRule>> rawGrammar;
     extern std::string startNonterminal;
+    extern std::string header;
 
-#line 61 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.hpp"
+#line 62 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.hpp"
 
 
 # include <cstdlib> // std::abort
@@ -186,7 +187,7 @@
 #endif
 
 namespace yy {
-#line 190 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.hpp"
+#line 191 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.hpp"
 
 
 
@@ -1164,7 +1165,7 @@ switch (yykind)
     /// Constants.
     enum
     {
-      yylast_ = 22,     ///< Last index in yytable_.
+      yylast_ = 24,     ///< Last index in yytable_.
       yynnts_ = 10,  ///< Number of nonterminal symbols.
       yyfinal_ = 6 ///< Termination state number.
     };
@@ -1355,9 +1356,9 @@ switch (yykind)
   }
 
 } // yy
-#line 1359 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.hpp"
+#line 1360 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.hpp"
 
 
 
 
-#endif // !YY_YY_HOME_NIKITA_IFMO_SEM5_ITMO_S5_TRANSLATION_LABS_LAB4_CPP_GRAM_HPP_INCLUDED
+#endif // !YY_YY_HOME_NIKITA_IFMO_SEM5_TRANSLATION_LABS_LAB4_CPP_GRAM_HPP_INCLUDED

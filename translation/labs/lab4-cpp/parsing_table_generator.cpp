@@ -141,6 +141,7 @@ Rule parseRule(const std::vector<std::string> &tokens,
 std::pair<size_t, ParsingTable> generateParsingTable(std::unordered_set<GrammarSymbol> const &grammar);
 
 void convertGrammar(std::string const& file,
+                    std::string const& header,
                     std::unordered_map<std::string, std::vector<RawRule>> const& rawGrammar,
                     std::map<std::string, std::string> const& types) {
     std::unordered_map<std::string, NonterminalDescription> descriptions;
@@ -212,7 +213,7 @@ void convertGrammar(std::string const& file,
 
     auto[startIdx, table] = generateParsingTable(symbols);
 
-    generateCode(file, table, descriptions, startIdx, types);
+    generateCode(file, header, table, descriptions, startIdx, types);
 }
 
 template<typename Iterator>

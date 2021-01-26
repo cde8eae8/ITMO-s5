@@ -66,7 +66,7 @@ const char *cppHead =
 const char *actionsType = "std::vector<std::unordered_map<TerminalGrammarSymbol, ParserAction>>";
 const char *gotoType = "std::vector<std::unordered_map<std::string, ParserState>>";
 
-void generateCode(std::string const &filename, ParsingTable const &table,
+void generateCode(std::string const &filename, std::string const& head, ParsingTable const &table,
                   std::unordered_map<std::string, NonterminalDescription> const &descriptions,
                   size_t startIdx,
                   std::map<std::string, std::string> const &types) {
@@ -86,14 +86,15 @@ void generateCode(std::string const &filename, ParsingTable const &table,
            "#include <string>\n"
            "#include \"parsing_rule_structures.h\"\n"
            "#include \"parser.h\"\n"
+           << head << "\n";
 //           "#include \"test.h\"\n";
-           "#include \"tree.h\"\n";
 
 
     std::ofstream header(filename + ".h");
     header <<
            "#ifndef __PARSER_HEADER__\n"
-           "#define __PARSER_HEADER__\n"
+           "#define __PARSER_HEADER__\n";
+    header << head <<
            "#include \"parsing_rule_structures.h\"\n"
            "#include <any>\n"
            "struct SimpleParsingTable;\n"

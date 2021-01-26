@@ -5,12 +5,8 @@
 #include "../test.h"
 
 #include <iostream>
-#include <variant>
 #include <any>
-#include <optional>
-#include <vector>
 #include <sstream>
-#include <stack>
 #include "../parsing_table_generator.h"
 #include "../parser.h"
 

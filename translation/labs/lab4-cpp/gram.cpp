@@ -42,7 +42,7 @@
 
 
 // Unqualified %code blocks.
-#line 20 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
+#line 21 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
 
 namespace yy
 {
@@ -52,9 +52,9 @@ namespace yy
         std::cerr << msg << '\n';
     }
 }
-#line 31 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
+#line 32 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
  
-#line 82 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
+#line 83 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
 
 namespace yy {
         // Return the next token.
@@ -90,7 +90,7 @@ namespace yy {
         }
     }
 
-#line 94 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
+#line 94 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
 
 
 #ifndef YY_
@@ -163,7 +163,7 @@ namespace yy {
 #define YYRECOVERING()  (!!yyerrstatus_)
 
 namespace yy {
-#line 167 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
+#line 167 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
 
   /// Build a parser object.
   parser::parser ()
@@ -631,56 +631,62 @@ namespace yy {
         {
           switch (yyn)
             {
+  case 2: // SourceFile: code Types StartNonterminal Nonterminals
+#line 37 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
+                                           { header = yystack_[3].value.as < std::string > (); }
+#line 638 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
+    break;
+
   case 3: // StartNonterminal: '@' identifier
-#line 39 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
+#line 40 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
                                  { startNonterminal = yystack_[0].value.as < std::string > (); }
-#line 638 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
+#line 644 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
     break;
 
   case 6: // Type: identifier '<' identifier '>'
-#line 48 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
+#line 49 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
                                 { identifiers.insert(std::make_pair(yystack_[3].value.as < std::string > (), yystack_[1].value.as < std::string > ())); }
-#line 644 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
+#line 650 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
     break;
 
   case 9: // Nonterminal: identifier Rules ';'
-#line 57 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
+#line 58 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
                          { rawGrammar.insert(std::make_pair(yystack_[2].value.as < std::string > (), yystack_[1].value.as < std::vector<RawRule> > ())); }
-#line 650 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
+#line 656 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
     break;
 
   case 10: // Rules: Rule
-#line 61 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
+#line 62 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
         { yylhs.value.as < std::vector<RawRule> > () = std::vector<RawRule>{std::move(yystack_[0].value.as < RawRule > ())}; }
-#line 656 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
+#line 662 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
     break;
 
   case 11: // Rules: Rules Rule
-#line 62 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
+#line 63 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
               { yystack_[1].value.as < std::vector<RawRule> > ().push_back(yystack_[0].value.as < RawRule > ()); yylhs.value.as < std::vector<RawRule> > () = std::move(yystack_[1].value.as < std::vector<RawRule> > ()); }
-#line 662 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
+#line 668 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
     break;
 
   case 12: // Rule: '|' Tokens code
-#line 66 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
+#line 67 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
                    { yylhs.value.as < RawRule > () = RawRule{std::move(yystack_[1].value.as < std::vector<std::string> > ()), std::move(yystack_[0].value.as < std::string > ())}; }
-#line 668 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
+#line 674 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
     break;
 
   case 13: // Tokens: identifier
-#line 70 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
+#line 71 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
               { yylhs.value.as < std::vector<std::string> > () = std::vector<std::string>{yystack_[0].value.as < std::string > ()}; }
-#line 674 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
+#line 680 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
     break;
 
   case 14: // Tokens: Tokens identifier
-#line 71 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.y"
+#line 72 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.y"
                      { yystack_[1].value.as < std::vector<std::string> > ().push_back(yystack_[0].value.as < std::string > ()); yylhs.value.as < std::vector<std::string> > () = std::move(yystack_[1].value.as < std::vector<std::string> > ()); }
-#line 680 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
+#line 686 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
     break;
 
 
-#line 684 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
+#line 690 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
 
             default:
               break;
@@ -865,60 +871,60 @@ namespace yy {
 
 
 
-  const signed char parser::yypact_ninf_ = -6;
+  const signed char parser::yypact_ninf_ = -7;
 
   const signed char parser::yytable_ninf_ = -1;
 
   const signed char
   parser::yypact_[] =
   {
-      -4,    -1,     8,    -3,    -6,     1,    -6,     2,    -6,     3,
-       7,    -6,     6,     3,    -6,    -6,     9,    -6,    -5,    -6,
-      -6,    -2,    -6,    -6,    -6,    -6
+      -6,    -4,     8,     5,    -3,    -7,    -7,     2,     3,    -7,
+       4,     9,    -7,     6,     4,    -7,    -7,     7,    -7,    -5,
+      -7,    -7,    -2,    -7,    -7,    -7,    -7
   };
 
   const signed char
   parser::yydefact_[] =
   {
-       0,     0,     0,     0,     4,     0,     1,     0,     5,     0,
-       0,     3,     0,     2,     7,     6,     0,    10,     0,     8,
-      13,     0,     9,    11,    14,    12
+       0,     0,     0,     0,     0,     4,     1,     0,     0,     5,
+       0,     0,     3,     0,     2,     7,     6,     0,    10,     0,
+       8,    13,     0,     9,    11,    14,    12
   };
 
   const signed char
   parser::yypgoto_[] =
   {
-      -6,    -6,    -6,    11,    -6,     5,    -6,    -6,     4,    -6
+      -7,    -7,    -7,    12,    -7,    10,    -7,    -7,    -1,    -7
   };
 
   const signed char
   parser::yydefgoto_[] =
   {
-      -1,     2,     3,     4,    13,    14,     9,    21,    17,    18
+      -1,     2,     4,     5,    14,    15,    10,    22,    18,    19
   };
 
   const signed char
   parser::yytable_[] =
   {
-       7,    22,    16,     5,     1,     1,    24,    25,     6,    10,
-      11,    12,    15,    16,     8,     0,     0,    20,    19,     0,
-       0,     0,    23
+       8,    23,    17,     1,     3,     3,    25,    26,     6,     7,
+      11,    12,    13,    17,    16,    21,     9,     0,    24,     0,
+       0,     0,     0,     0,    20
   };
 
   const signed char
   parser::yycheck_[] =
   {
-       3,     6,     7,     4,     8,     8,     8,     9,     0,     8,
-       8,     8,     5,     7,     3,    -1,    -1,     8,    13,    -1,
-      -1,    -1,    18
+       3,     6,     7,     9,     8,     8,     8,     9,     0,     4,
+       8,     8,     8,     7,     5,     8,     4,    -1,    19,    -1,
+      -1,    -1,    -1,    -1,    14
   };
 
   const signed char
   parser::yystos_[] =
   {
-       0,     8,    11,    12,    13,     4,     0,     3,    13,    16,
-       8,     8,     8,    14,    15,     5,     7,    18,    19,    15,
-       8,    17,     6,    18,     8,     9
+       0,     9,    11,     8,    12,    13,     0,     4,     3,    13,
+      16,     8,     8,     8,    14,    15,     5,     7,    18,    19,
+      15,     8,    17,     6,    18,     8,     9
   };
 
   const signed char
@@ -931,7 +937,7 @@ namespace yy {
   const signed char
   parser::yyr2_[] =
   {
-       0,     2,     3,     2,     1,     2,     4,     1,     2,     3,
+       0,     2,     4,     2,     1,     2,     4,     1,     2,     3,
        1,     2,     3,     1,     2
   };
 
@@ -954,8 +960,8 @@ namespace yy {
   const signed char
   parser::yyrline_[] =
   {
-       0,    36,    36,    39,    43,    44,    48,    52,    53,    57,
-      61,    62,    66,    70,    71
+       0,    37,    37,    40,    44,    45,    49,    53,    54,    58,
+      62,    63,    67,    71,    72
   };
 
   void
@@ -987,5 +993,5 @@ namespace yy {
 
 
 } // yy
-#line 991 "/home/nikita/ifmo/sem5/ITMO-s5/translation/labs/lab4-cpp/gram.cpp"
+#line 997 "/home/nikita/ifmo/sem5/translation/labs/lab4-cpp/gram.cpp"
 
