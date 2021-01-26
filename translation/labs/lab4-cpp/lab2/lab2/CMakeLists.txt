@@ -12,7 +12,3 @@ add_executable(lab2
         include/project_rule_structures.cpp
         )
 
-add_executable(lab2-test
-        tests/test.cpp
-        src/lexer.cpp
-        src/tree.cpp)
