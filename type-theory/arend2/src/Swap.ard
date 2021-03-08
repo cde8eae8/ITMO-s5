@@ -1,0 +1,18 @@
+\import Data.List
+
+-- let a <= b
+-- ... v_a ... v_b ...
+-- ... ??? ... ??? id
+-- а там точно корректное определение swap???
+
+-- a = n
+-- b = n
+
+\func swap {A : \Type} (v : List A) (a b : A) : List A
+  \with {
+    | nil, a, b => {?}
+    | :: a v, a1, b => {?}
+
+\func swap-helper {A : \Type} (v : List A) (a b : A) (res : List A) =>
+
+  }

@@ -128,7 +128,6 @@ struct Shift {
 };
 
 struct Reduce {
-//    size_t length;
     const Rule* rule;
 };
 

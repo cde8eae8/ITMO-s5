@@ -44,52 +44,6 @@ struct SimpleParsingTable {
     std::vector<std::unordered_map<std::string, ParserState>> gotoActions;
 };
 
-//// helper type for the visitor #4
-//template<class... Ts>
-//struct overloaded : Ts ... {
-//    using Ts::operator()...;
-//};
-//// explicit deduction guide (not needed as of C++20)
-//template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
-//
-//
-//using RuleId = int;
-//using StateId = int;
-//
-//struct State {
-//    StateId id;
-//    std::any attribute;
-//};
-//struct ParserTable {
-//    [[nodiscard]] Action action(State const& state, TerminalGrammarSymbol const& symbol) const {
-//
-//    }
-//
-//    [[nodiscard]] StateId move(State const& state, RuleId symbol) const {
-//
-//    }
-//
-//    /*TODO: GENERATE m_action = {...}*/
-//    /*TODO: GENERATE m_goto = {...}*/
-//};
-//
-//struct Lexer {
-//
-//};
-//
-//void parse(/*TODO:..., */ Lexer &lexer) {
-//
-//}
-//
-//ParserTable makeTable(...) {
-//
-//}
-//
-//const State BOTTOM = State{-1, nullptr};
-//
-//std::variant<Error, Accept> parse(ParserTable const &parserTable, Lexer &lexer);
-
-
 template <typename Lexer>
 std::any parse(size_t startingState, SimpleParsingTable const &parserTable, Lexer &lexer, std::vector<ParserRule> const& rules,
                std::function<std::any(size_t, std::vector<std::any> const&)> makeActions) {
@@ -102,6 +56,18 @@ std::any parse(size_t startingState, SimpleParsingTable const &parserTable, Lexe
     while (!finished) {
 //        std::cout << workingStack << " | " << currentInputSymbol << std::endl;
         auto const &top = workingStack.back();
+        if (parserTable.actions[top.stateId].find(currentInputSymbol.first) == parserTable.actions[top.stateId].end()) {
+            auto name = [](TerminalGrammarSymbol const& v) -> std::string {
+                return std::visit([](auto const& t) { return t.name(); }, v);
+            };
+
+            std::string message = "bad expression: expected ";
+            for (auto &p : parserTable.actions[top.stateId]) {
+                message += name(p.first) + ", ";
+            }
+            message += "found " + name(currentInputSymbol.first);
+            throw std::runtime_error(message);
+        }
         ParserAction action = parserTable.actions[top.stateId].at(currentInputSymbol.first);
         std::visit(overloaded{
                 [&](ParserShift const &shift) {

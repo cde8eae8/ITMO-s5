@@ -1,11 +1,101 @@
-{ }
+{
+#include <cmath>
+}
 
 Expression<int>
 AddSub<int>
 MulDiv<int>
 Var<int>
+Power<int>
 
 @ Expression
+
+
+1 + 2 * 3 + 4
+(1 + (2 * (3 + 4)))
+(((1 + 2) * 3) + 4)
+
+
+(1 + (2 * 3)) + 4
+
+
+  RawString: x^2 * 3 + 4
+After Lexer:
+  Tokens:   '*' '+' NUMBER X '^'
+            X ^ NUMBER * NUMBER + NUMBER
+            
+                      Polynom
+        Mul              +    Polynom
+  Value       *   Mul         Mul
+  XValue          Value       Value
+ X  ^   NUMBER    NUMBER      NUMBER
+-------------------------------------------
+                      Polynom
+        Mul              +    Polynom {4}
+  Value       *   Mul{3}      Mul {4}
+  XValue          Value{3}    Value {4}
+ X  ^   NUMBER(2) NUMBER(3)   NUMBER(4)
+
+Expression 
+  | Polynom { someGlobalVariable = _1; }
+
+Polynom
+  | Mul { return _1; }
+  | Mul '+' Polynom { add }
+  | Mul '-' Polynom { sub }
+
+Mul
+  | Value { return _1; }
+  | Value '*' Mul
+
+Value
+  | NUMBER  { return vector{_1}; }          // some number
+  | XValue  { return _1; }          // <- x, x^2, x^3
+  | '(' Polynom ')' { return _1; }
+
+1 * (3 * x^5 + 4) * x^10
+
+XValue
+  | X { return vector{1, 0} }
+  | X '^' NUMBER { 
+    vector<int> tmp(_3 + 1);
+    tmp[0] = 1;
+    return tmp;
+  }
+
+1 0 0 0 0 0
+5 4 3 2 1 0
+
+x^6 + 6x^3 - 9
+
+1 0 0 6 0 0 -9
+
+
+6 5 4 3 2 1 0
+
+
+
+Expression
+  | Number plus Expression { return _1 + _3; } 
+  | Expression plus Number { return _1 + _3; } 
+
+Number
+  | digit { return _1; }
+  | Number digit  { return _1 * 10 + _2; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Expression
     | AddSub { return _1; }
@@ -18,8 +108,13 @@ AddSub
     ;
 
 MulDiv
-    | MulDiv mul Var { return _1 * _3; }
-    | MulDiv div Var { return _1 / _3; }
+    | MulDiv mul Power { return _1 * _3; }
+    | MulDiv div Power { return _1 / _3; }
+    | Power { return _1; }
+    ;
+
+Power
+    | Var power Power { return pow(_1, _3); }
     | Var { return _1; }
     ;
 

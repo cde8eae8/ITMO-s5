@@ -22,7 +22,12 @@ struct CalcLexer {
 
         if (c == '(') return terminal_lBracket();
         if (c == ')') return terminal_rBracket();
-        if (c == '*') return terminal_mul();
+        if (c == '*') {
+            c = s.get();
+            if (c == '*') return terminal_power();
+            s.unget();
+            return terminal_mul();
+        }
         if (c == '+') return terminal_plus();
         if (c == '-') return terminal_minus();
         if (c == '/') return terminal_div();

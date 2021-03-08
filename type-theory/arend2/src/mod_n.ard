@@ -1,0 +1,188 @@
+-- Dn = div na a
+-- 1. Dn >= n
+--    a Dn + mod Dn a = na
+--    mod Dn a <= a
+--    let Dn <= pred n
+--    1. a Dn <= a * pred n домнож a
+--      + mod Dn a <= pred a
+--      = aDn + mod Dn a <= a * pred n + pred a
+--    suc (a * pred n + pred a) = a*n (?!)
+-- 2. Dn <= n
+--    a Dn <= na
+--    Dn <= n
+
+\import Algebra.Monoid
+\import Arith.Nat
+\import Eq
+\import Leq
+\import Logic
+\import Logic.Meta
+\import Paths
+\import Paths.Meta
+\import mod (_1<=a_div_a)
+\open Nat
+
+-- mod (an) a = 0
+-- div (an) a = n
+
+-- <=
+--\func <=-pmap  {a b c d : Nat} (p : a <= b) (l : a = c) (r : b = d) : c <= d =>
+--  transport2 (\lam x y => x <= y) l r p
+--
+--\func <=-transportR {a b c : Nat} (p : a <= b) (q : b = c) : (a <= c) =>
+--  transport (\lam x => a <= x) q p
+--
+--\func <=-transportL {a b c : Nat} (p : a <= b) (q : a = c) : (c <= b) =>
+--  transport (\lam x => x <= b) q p
+--
+--\func =to<= {a b : Nat} (p : a = b) : a <= b
+--  | {0}, {0}, p => zero<=_
+--  | {suc a}, {suc b}, p => suc<=suc (=to<= (pmap pred p))
+
+
+\func a_mod_a=0 (a : Nat) : mod a a = 0
+  | 0 => idp
+  | suc a =>
+    rewriteF
+      (pmap suc (NatSemiring.+-comm : 0 + a = a) : suc a * 1 = suc a)
+      (mod_a*n_a=0 (suc a) (1))
+
+\func a_div_a=1 {a : Nat} (p : 1 <= a) : div a a = 1
+  | {suc a}, p => -- div_a*n_a=n {suc a} {1} (=to<= idp) (p)
+      rewriteF
+      (pmap suc (NatSemiring.+-comm : 0 + a = a) : suc a * 1 = suc a)
+      (div_a*n_a=n {suc a} 1 (p))
+
+\func drop_mod (a b : Nat) : b * (div a b) <= a =>
+  NatLE.<=-transitive (<=_0_+-right (mod a b)) (=to<= (divModProp a b))
+
+\func mod0_a=0 {a : Nat} : mod 0 a = 0
+  | {0} => idp
+  | {a} => a<=0=>a=0 (NatLE.<=-transitive (<=_0_+-left (a * div 0 a)) (=to<= (divModProp 0 a)))
+
+-- TODO
+\func div0_a=0 {a : Nat} : div 0 a = 0
+  | {0} => idp
+  | {a} => a<=0=>a=0 (NatLE.<=-transitive (<=_0_+-left (a * div 0 a)) (=to<= (divModProp 0 a)))
+
+\func mod_a*n_a=0 (a n : Nat) : mod (a * n) a = 0
+  | a, 0 => mod0_a=0
+  | 0, suc n => (NatSemiring.*-comm {0} {suc n})
+  | suc a, suc n =>
+    \let | a' => suc a
+         | n' => suc n
+    \in
+      eq_min (pmap (\lam x => a' * x) (div_a*n_a=n (suc n) (_1<=suc_a a))) (divModProp (a' * n') a')
+  \where {
+    \func eq_min {a b c : Nat} (p : a = c) (q : a + b = c) : (b = 0)
+      | {suc a}, {suc b}, {suc c}, p, q => eq_min {a} {suc b} {c} (a'=b'=>a=b p)
+        ((inv move' : a + (b + 1) = (a + 1) + b) *>
+          ((pmap (\lam x => pred x) q
+          : (a + 1) + b = c))
+        : a + (b + 1) = c)
+      | {0}, {b}, {0}, p, q => rewriteF (NatSemiring.+-comm {0} {b}) q
+      | {a}, {0}, {c}, p, q => idp
+
+      \where {
+            \func move' {a b : Nat} : (a + 1) + b = a + (b + 1) =>
+              moveup1 *> moveup2
+              \where {
+                \func moveup1 {a b : Nat} : (a + 1) + b = (a + b) + 1 =>
+                  NatSemiring.+-comm {a + 1} {b} *> rewrite (+-comm : b + a = a + b) (idp)
+                \func moveup2 {a b : Nat} : a + (b + 1) = (a + b) + 1 =>
+                  inv (NatSemiring.+-assoc {a} {b} {1})
+              }
+          }
+  }
+
+\func div_n*a_a=n {a : Nat} (n : Nat) (q2 : 1 <= a) : div (n * a) a = n =>
+  rewriteF (NatSemiring.*-comm : a * n = n * a) (div_a*n_a=n n q2)
+
+\func div_a*n_a=n {a : Nat} (n : Nat) (q2 : 1 <= a) : div (a * n) a = n
+  | {suc a}, 0, q => div0_a=0
+  | {suc a}, suc n, q => NatLE.<=-antisymmetric (f (suc a) (suc n) (_1<=suc_a a)) (f2 (suc a) (suc n) (_1<=suc_a a))
+
+\func f (a n : Nat) (q : 1 <= a) : div (a * n) a <= n =>
+  <=-mul-i q (drop_mod (a * n) a)
+
+---------------------------------------------------------
+
+\lemma _1<=suc_a (a : Nat) : (1 <= suc a)
+  | 0 => suc<=suc zero<=_
+  | suc a => NatLE.<=-transitive (_1<=suc_a a) (<=-suc)
+
+\func f2 (a n : Nat) (q : 1 <= a) : n <= div (a * n) a
+  | suc a, 0, suc<=suc q => zero<=_
+  | suc a, suc n, suc<=suc q => <=-inverse (!div>=n {suc a} {suc n} (_1<=suc_a a) (_1<=suc_a n))
+
+-- => <=-inverse !div>=n
+
+\func !div>=n {a n : Nat} (q : 1 <= a) (q2 : 1 <= n) (p : suc (div (a * n) a) <= n) : Empty =>
+  contr q q2 (<=-pred-i (<=-transportR p (inv (pred+1=suc q2))))
+
+\func !a*div<a*n {a n : Nat} (q : 1 <= a) (q2 : 1 <= n) (p : (div (a * n) a) <= pred n)
+  : a * (div (a * n) a) <= a * pred n =>
+  <=-*_add_a p
+
+--\func a'=b'=>a=b {a b : Nat} (p : suc a = suc b) : (a = b)
+--  | {0}, {0}, p => idp
+--  | {suc a}, {suc b}, p => pmap (\lam x => x + 1) (a'=b'=>a=b {a} {b} p)
+--
+--\func !a=b&a<b {a b : Nat} (p : a = b) (q : suc a <= b) : Empty
+--  | {0}, {0}, p, ()
+--  | {suc a}, {suc b}, p, suc<=suc q => !a=b&a<b {a} {b} (a'=b'=>a=b p) q
+--
+\func contr {a n : Nat} (q : 1 <= a) (q2 : 1 <= n) (p : (div (a * n) a) <= pred n) : Empty =>
+  !a=b&a<b (divModProp (a * n) a) (!a*div+mod<=a*n q q2 p)
+
+\func !a*div+mod<=a*n {a n : Nat} (q : 1 <= a) (q2 : 1 <= n) (p : (div (a * n) a) <= pred n)
+                      : suc (a * (div (a * n) a) + mod (a * n) a) <= a * n =>
+  <=-transportR
+  (<=-+C (<=_+ (!a*div<a*n {a} {n} q q2 p) (<=-pred-i (<=-transportR (modProp (a * n) {a} q) (inv (pred+1=suc q))))) 1)
+      (a*pred_n+pred_a+1=an q q2 )
+
+\func pred+1=suc {a : Nat} (q : 1 <= a): suc (pred a) = a
+  | {suc a}, suc<=suc q => idp
+
+\func a*pred_n+pred_a+1=an {a n : Nat} (q : 1 <= a) (q2 : 1 <= n) : a * pred n + pred a + 1 = a * n
+  | {0}, {0}, (), q2
+  | {suc a}, {0}, suc<=suc q, ()
+  | {suc a}, {suc n}, suc<=suc q, suc<=suc q2 => idp
+
+---------------------------------------------------------
+-- Proof: ok c * a + c * d = b => b mod c = 0 (*-distr)
+-- Proof: ?? c * a + b = c * d => b mod c = 0
+-- Proof: ?? (a + b = c) <=> (a = c - b)
+--   => (a + d * b = d * c) <=> (a = d * c - d * b)
+-- Proof: ?? c >= b | (d * c - d * b) = d * (c - b)
+
+\func -'-distr (a b c : Nat) (p : b <= c) : a * c -' a * b = a * (c -' b)
+  | 0, b, c, p => rewrite (NatSemiring.*-comm : 0 * c = c * 0) (NatSemiring.*-comm)
+  | suc a, 0, 0, zero<=_ => idp
+  | suc a, 0, suc c, zero<=_ => {?}
+  | suc a, b, c, p => -'-distr a b c p
+
+\func s1 (a b c d : Nat) (p : a * d + b = c * d) : mod b b = 0
+
+-- a * c -' a * b = a * (c -' b)
+-- a * c = a * b + a * (c -' b)
+-- a * c = a * (b + (c -' b))
+-- c = b + (c -' b)
+-- c = c
+
+\func s0 (a b c : Nat) (q : b <= c) (p : c = a + b) : (c -' b = a)
+  | 0, 0, 0, q, p => idp
+  | 0, suc b, suc c, q, p => p
+  | suc a, 0, suc c, q, p => p
+  | suc a, b, suc c, q, p => ({?}) *> pmap (\lam x => suc x) (s0 a b c ({?} : c = a + b))
+
+\func -'suc (b c : Nat) (p : b <= c) : suc (c -' b) = suc c -' b
+  | 0, 0, zero<=_ => idp
+  | 0, suc c, zero<=_ => idp
+  | suc b, suc c, suc<=suc p => -'suc b c p
+
+-- \func {A : \Type} {a b : A} (p : a = b)
+
+\func upNatEq {a b : Nat} (p : a = b) : suc a = suc b =>
+  pmap (\lam x => suc x) p
+

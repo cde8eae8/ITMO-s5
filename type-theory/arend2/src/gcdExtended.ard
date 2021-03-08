@@ -1,0 +1,222 @@
+\import Algebra.Group
+\import Algebra.Monoid
+\import Algebra.Semiring
+\import Arith.Int
+\import Arith.Nat
+\import HLevel
+\import Leq ()
+\import Less (&&)
+\import Logic
+\import Logic.Meta
+\import Paths
+\import Paths.Meta
+\import Order.LinearOrder
+\import gcd
+\import imod
+\import mod_n (_1<=suc_a, div_n*a_a=n)
+\import Arith.Int
+
+\func _0/=1 (p : 0 = 1) : Empty
+
+\func \infixl 6 -i (n m : Int) : Int
+  | pos a, pos b => a - b
+  | pos a, neg (suc b) => pos (a + suc b)
+  | neg (suc a), pos b => neg (suc a + b)
+  | neg (suc a), neg (suc b) => b - a
+
+\func \infixl 6 -'i (n m : Int) : Int => n IntRing.+ (IntRing.negative m)
+
+
+pmap
+-- ac : b
+-- gcd(a, b) = 1
+-- => c : b
+----------------
+-- acx + bcy = c
+
+\func wrapOperationToInt' (f : Nat -> Nat -> \Type)
+  : (\Pi (x y : Int) (0 IntLE.<= x) (0 IntLE.<= y) -> \Type) =>
+  \lam x y px py => f (fromPos x px) (fromPos y py)
+
+\func _0<=nat (a : Nat) : 0 IntLE.<= Int.fromNat a
+  | 0 => {?}
+  | suc a => {?}
+
+\func wrapOperationToInt (f : Nat -> Nat -> Nat)
+  : (\Pi (x y : Int) (0 IntLE.<= x) (0 IntLE.<= y) -> Int) =>
+  \lam x y px py => f (fromPos x px) (fromPos y py)
+
+\func ^i (f : Nat -> Nat -> Nat)
+  : (\Pi (x y : Int) (0 IntLE.<= x) (0 IntLE.<= y) -> Int) => wrapOperationToInt f
+
+\func ^i= {x y c : Nat} (f : Nat -> Nat -> Nat) (p : f x y = c)
+  : (^i f) (Int.fromNat x) (Int.fromNat y)
+
+\func gcd_of_a_b=1&ac:b=>c:b (a b c : Nat)
+                     (g : gcd a b = 1)
+                     (q : Nat.mod (a * c) b = 0)
+  : Nat.mod c b = 0 =>
+    \let | proof => (gcd-isDivider3 a b) \in
+    \case proof \with {
+      | byLeft l => l1 {a} {b} {l.2.1} {l.2.2} c (l.2.3)
+      | byRight r => absurd (r g)
+    }
+
+  -- ax + by =
+  \where {
+    \func l1 {a b : Nat} {x y : Int} (c : Int)
+             (p : Int.fromNat a * x + Int.fromNat b * y = 1)
+      : (Int.fromNat (a * c) * x + c * Int.fromNat (b) * y = c)
+
+      -- ax + by = 1
+      -- (ac)x + (bc)y = c
+      -- ac:b, bc:b => c : b
+
+
+    \func l2 (a b : Int) (c d : Nat) (x y : Int)
+             (p : a * x + b * y = c)
+             (q : 1 IntLE.<= b)
+             (amodd : imod a d = 0)
+             (bmodd : imod b d = 0)
+              : imod c d = 0
+
+    \func l3 (a : Int) (c : Nat) (p : imod a c = 0) (q : 1 Nat.<= c)
+      : \Sigma (n : Int) (p : (Int.fromNat c) * n = a)
+      | pos n, 0, p, ()
+      | pos n, c, p, q => (Nat.div n c, imod=mod n c (_0<=nat c) *> moda_b=a-b*diva_b n c)
+      | neg n, 0, p, ()
+      | neg n, suc c, p, Nat.suc<=suc q => ({?}, {?})
+
+    -- ax + by = c
+    -- a = d * idiv d a ?
+    -- b = d * idiv d b ?
+    -- + ldistr
+  }
+
+\func gcd-isDivider3
+  (a b : Nat)
+  : ((gcd a b = 1) &&
+      (\Sigma (x y : Int) ((Int.fromNat a) IntRing.* x IntRing.+ (Int.fromNat b) IntRing.* y = 1)))
+  || (Not (gcd a b = 1))
+
+\func gcd-isDivider-seq-n3
+  (a b : Nat)
+  (n : Nat)
+  (p : a Nat.<= b)
+  (q : a Nat.<= n)
+  : ((gcd a b = 1) && (\Sigma (x y : Int)
+                              ((Int.fromNat a) IntRing.* x IntRing.+ (Int.fromNat b) IntRing.* y = 1)))
+    || (Not (gcd a b = 1))
+  | 0, 0, n, p, q => byRight (rewrite (gcd0 {0}) _0/=1)
+  | 0, 1, n, p, q => byLeft (gcd0, (0, 1, idp))
+  | 0, suc (suc b), n, p, q => byRight (gcd0 : gcd 0 b = b)
+  | suc a', b, suc n, p, q =>
+    \let | a => suc a'
+         | proof =>  (gcd-isDivider-seq-n3 (Nat.mod b a) a n
+             (mod_a_b<=b b a (_1<=suc_a a' : 1 Nat.<= a): Nat.mod b a Nat.<= a)
+             (gcd-helper-n.p1 a b n q (_1<=suc_a a' : 1 Nat.<= a) : Nat.mod b a Nat.<= n)) -- mod b a
+    \in \case proof \with {
+      | byLeft recur =>
+        \let
+          | x1 => recur.2.1
+          | y1 => recur.2.2 \in
+          byLeft ({?}, (y1 IntRing.+ (IntRing.negative x1 IntRing.* (Nat.div b a)), x1,
+            (idp) *>
+            (extended-gcd-iter-proof {a} {b} {x1} {y1} {Nat.div b a}
+              : Int.fromNat a * (y1 + negative x1 * Int.fromNat (Nat.div b a)) + Int.fromNat b * x1 =
+               (Int.fromNat b + negative (Int.fromNat a) * Int.fromNat (Nat.div b a)) * x1 + Int.fromNat a * y1
+            ) *>
+            (rewriteF (mod=_ b a)
+              (recur.2.3)
+              : (Int.fromNat b + negative (Int.fromNat a) * Int.fromNat (Nat.div b a)) * x1 + Int.fromNat a * y1 =
+                Int.fromNat 1
+            ) -- *> (inv
+
+           ))
+      | byRight recur => byRight recur
+    }
+
+  \where {
+    \func gcd0 {b : Nat} : gcd 0 b = b
+      | {0} => idp
+      | {suc b} => idp
+
+   -- \func gcd-sym {a b : Nat} : (gcd a b = gcd b a)
+
+   -- \func gcd-next-iter {a b : Nat} (p : a Nat.<= b) : (gcd a b = gcd (Nat.mod b a) a)
+
+    \func mod=_Nat (a b : Nat) : Nat.mod a b = a -' (b * Nat.div a b) => moda_b=a-b*diva_b a b
+
+    \func mod=_ (a b : Nat) :
+      (Int.fromNat (Nat.mod a b) = Int.fromNat a + negative (b IntRing.* Int.fromNat (Nat.div a b))) =>
+      (p1 a b)
+      *>
+      (-'as+negative a (b * Nat.div a b)
+          (NatLE.<=-transitive
+              (<=_0_+-right (Nat.mod a b))
+              (Leq.=to<= (Nat.divModProp a b) : b * Nat.div a b + Nat.mod a b Nat.<= a) : b * Nat.div a b Nat.<= a))
+      \where {
+        \func p1 (a b : Nat) : Int.fromNat (Nat.mod a b) = Int.fromNat (a -' (b * (Nat.div a b))) =>
+          pmap (\lam x => Int.fromNat x) (mod=_Nat a b)
+
+
+       -- \func l1 (a c : Nat) (b : Int) (p : Int.fromNat a = b + Int.fromNat c)
+       --   : (Int.fromNat a + negative b = Int.fromNat c)
+       --   | 0, c, b, p => p
+       --   | suc a, suc c, b, p => l1 a c b ({?} : suc a = b + suc c)
+
+       -- \func l2 (c : Int) (b : Int) (p : b + c = 0) : (b = negative c)
+       --   | pos n, pos (suc n1), p => <=_+ (_1<=suc_a n1) (Nat.zero<=_ : 0 Nat.<= n)
+       --   | pos n, neg n1, p => {?}
+       --   | neg n, pos n1, p => {?}
+       --   | neg n, neg n1, p => {?}
+
+       -- \func l3 (a b c : Nat) (b : Int) (p : a = b + c)
+       --   : (a -' b = c)
+       --   | 0, c, b, p => p
+       --   | suc a, suc c, b, p => l1 a c b ({?} : suc a = b + suc c)
+
+      }
+
+    \func extended-gcd-iter-proof {a b x1 y1 G : Int}
+      : a * (y1 + (negative (x1) * G)) + b * x1 = (b + negative (a) * G) * x1 + a * y1 =>
+      (
+        pmap (\lam x => x + b * x1) (IntRing.ldistr a y1 (negative (x1) * G))
+        : a * (y1 + (negative (x1) * G)) + b * x1 = a * y1 + a * (negative (x1) * G) + b * x1
+      )
+      *> (
+        pmap (\lam x => a * y1 + x + b * x1)
+             (l2 a x1 G : a * (negative (x1) * G) = x1 * (negative (a) * G))
+        : a * y1 + a * (negative (x1) * G) + b * x1 = a * y1 + x1 * (negative (a) * G) + b * x1
+      )
+      *> (
+        (IntRing.+-assoc {a * y1} {x1 * (negative (a) * G)} {b * x1}) *>
+        pmap (\lam x => a * y1 + x)
+           ( (
+                 pmap (\lam x => x1 * (negative (a) * G) + x) (*-comm)
+                 : x1 * (negative (a) * G) + b * x1 = x1 * (negative (a) * G) + x1 * b
+             ) *> (
+                  +-comm
+                 : x1 * (negative (a) * G) + x1 * b = x1 * b + x1 * (negative (a) * G)
+             ) *> (
+                 inv (ldistr x1 (b) (negative (a) * G))
+                 : x1 * b + x1 * (negative (a) * G) = x1 * (b + negative (a) * G)
+             ) : x1 * (negative (a) * G) + b * x1 = x1 * (b + negative (a) * G)
+           )
+        -- *> inv (IntRing.+-assoc {a * y1} {x1 * (negative (a * G))} {b * x1})
+        : a * y1 + x1 * (negative (a) * G) + b * x1 = a * y1 + x1 * (b + negative (a) * G)
+      )
+      *> (
+        +-comm
+        : a * y1 + x1 * (b + negative (a) * G) = x1 * (b + negative (a) * G) + a * y1
+      )
+      *> (
+        pmap (\lam x => x + a * y1)
+             (*-comm : x1 * (b + negative (a) * G) = (b + negative (a) * G) * x1)
+        : x1 * (b + negative (a) * G) + a * y1 = (b + negative (a) * G) * x1 + a * y1
+      )
+      \where {
+        -- \lemma l1 (a b : Int) : a * negative b = negative (a * b)
+        \lemma l2 (a b c : Int) : a * (negative (b) * c) = b * (negative (a) * c)
+      }
+  }

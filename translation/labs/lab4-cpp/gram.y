@@ -96,7 +96,6 @@ namespace yy {
                     c = getchar();
                 }
                 ungetc(c, stdin);
-                std::cout << "id: " << s << std::endl;
                 return parser::make_identifier(s);
             }
 
@@ -107,8 +106,6 @@ namespace yy {
                     s += c;
                     c = getchar();
                 }
-                // ungetc(c, stdin);
-                std::cout << "code: " << s << std::endl;
                 return parser::make_code(s);
             }
             return c;

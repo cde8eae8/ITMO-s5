@@ -1,0 +1,34 @@
+\import Arith.Int
+\import gcd
+
+\func fromInt (a : Int) (p : 0 IntLE.<= a) : Nat
+  | pos n, _ => n
+
+\func imod (a : Int) (b : Nat) : Nat
+  | pos n, b => Nat.mod n b
+  | neg (suc n), b => Nat.mod n b Nat.+ b
+
+\func divab' (a : Nat) : (Nat.divMod (suc a) 0).1 = suc a
+  | 0 => idp
+  | suc a => divab' a
+
+\func divab {a b : Nat} : (Nat.divMod a b).1 = Nat.div a b
+  | {0}, {0} => idp
+  | {0}, {suc b} => idp
+  | {suc a}, {0} => divab {a} {0}
+  | {suc a}, {suc b} => idp
+
+\func diva_0=a {a : Nat} : (Nat.divMod a 0).1 = a => idp
+
+\func diva_0=a' {a : Nat} : Nat.div a 0 = a => idp
+
+\func moda_0=a {a : Nat} : (Nat.divMod a 0).2 = Nat.mod a 0
+  | {0} => idp
+  | {suc a} => idp
+
+\func imod=mod (a : Int) (b : Nat) (p : 0 IntLE.<= a) (posb : 1 Nat.<= b)
+      : imod a b = Nat.mod (fromInt a p) b
+  | pos n, 0, IntLE.pos<=pos _x, ()
+  | pos n, suc b, IntLE.pos<=pos _x, Nat.suc<=suc posb => idp
+  | neg n, 0, (), posb
+

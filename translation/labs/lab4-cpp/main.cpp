@@ -69,6 +69,15 @@ std::ostream &operator<<(std::ostream &out, RawRule const &rule) {
     return out;
 }
 
+#include "..."
+
+int main(int argc, char** argv) {
+  parse();
+  std::cout << someGlobalVariable << std::endl;
+}
+
+
+
 int main(int argc, char** argv) {
     if (argc == 1) {
         std::cout << "args" << std::endl;
