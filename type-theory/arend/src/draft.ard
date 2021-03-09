@@ -1,0 +1,120 @@
+\import Algebra.Group
+\import Algebra.Monoid
+\import Algebra.Ring
+\import Arith.Int
+\import Arith.Nat
+\import Data.Bool
+\import Data.List
+\import HLevel
+\import Logic
+\import Logic.Meta
+\open Nat
+\import Order.LinearOrder
+\import Paths
+\import Paths.Meta
+-------------------
+\import first.mod_n_ok (div_a*n_a=n, mod_a*n_a=0)
+\import first.eq_ok
+\import first.leq_ok
+\import second.Swap (ith, just, length)
+
+\func test1
+  (a b c : Nat)
+  (b=c : b = c)
+  (p : a Nat.<= b)
+  (q : a Nat.<= c)
+  : Path (\lam i => (pmap (\lam x => a Nat.<= x) b=c) @ i) p q =>
+      Path.inProp p q
+
+\lemma test3-inProp (A B : \Prop) (A=B : A = B) (a : A) (b : B) :
+    Path (\lam i => A=B @ i) a b
+  | A, B, id, a, b =>
+    \let | fa=fb =>
+      (pmap (\lam x => \Pi B -> x) id
+      : (\Pi (b : B) -> A) = (\Pi (b : B) -> B))
+         | p => (Path.inProp a : \Pi (a' : A) -> a = a')
+  \in -- path (\lam i => (fa=fb @ i) ())
+    -- transport (\lam x => x) (fa=fb) p
+    SigmaPropExt (\lam x => a <= length x)  -- pmap unfield a=b
+
+
+\func test7 (a : M) (b : M) (a=b : a = b) : unfield a = unfield b
+  | field n, field n1, a=b => pmap unfield a=b
+    \where {
+      \data M
+        | field Nat
+
+      \func unfield (a : M) : Nat
+        | field n => n
+    }
+
+\func pmap2 {A B C D : \Type} (f : A -> B -> C) {a a' : A} (p : a = a') {b b' : B} (q : b = b')
+  : f a b = f a' b'
+  => path (\lam i => f (p @ i) (q @ i))
+
+\func test8 (a : M) (b : M) (fa : isF a = true) (fb : isF b = true) (a=b : a = b)
+  : unfield a fa = unfield b fb
+  | test8.field n, test8.field n1, fa, fb, a=b =>
+    SigmaPropExt (\lam x => isF x)  -- pmap unfield a=b
+  | test8.field n, test8.empty, fa, (), a=b
+  | test8.empty, test8.field n, (), fb, a=b
+  \where {
+    \data M
+      | field Nat
+      | empty
+
+    \func isF (a : M) : Bool
+      | field n => true
+      | empty => false
+
+    \func unfield (a : M) (p : isF a = true) : Nat
+      | field n, p => n
+  }
+
+\func test6 {A B : \Prop}
+            (a : A) (q : A = B) : pmap (\lam x => (a : x)) q
+  -- \Pi (ar : A) -> (ar : B)
+
+\func test4-iso (a : Nat) (v w : List Nat) (v=w : v = w) (i : I) : \Type =>
+  \let | f => (\lam a<=v => transport (\lam x => a Nat.<= length x) v=w a<=v)
+       | g => (\lam a<=w => transport (\lam x => a Nat.<= length x) (inv v=w) a<=w)
+  \in
+  iso {a Nat.<= length v} {a Nat.<= length w} f g
+      (\lam (a<=v : a <= length v) => Path.inProp (g (f a<=v)) a<=v)
+      (\lam (a<=w : a <= length w) => Path.inProp (f (g a<=w)) a<=w) i
+
+\func test5 (a : Nat) (v w : List Nat) (v=w : v = w) (p : suc a <= length v) (q : suc a <= length w)
+  : (v, p) = (w, p)
+    -- path (\lam i => ith (v=w @ i) a ({?} : suc a <= length (v=w @ i)))
+    => SigmaPropExt (\lam (x : List Nat) => suc a <= length x) (v, p) (w, q) v=w  -- pmap unfield a=b
+
+\func pmap2 {A B C : \Type} (f : A -> B -> C) {a a' : A} (p : a = a') {b b' : B} (q : b = b') : f a b = f a' b'
+  => path (\lam i => f (p @ i) (q @ i))
+
+\func test2
+  (p : Nat)
+  (q : Nat)
+  : p = q => {?}
+
+
+\data IdxOk (v : List Nat) (idx : Nat)
+  | proof (p : suc idx Nat.<= length v)
+
+\func f (idx : Nat) (v w : List Nat) (v=w : v = w) (p : suc idx <= length v) (q : suc idx <= length w) :
+  IdxOk v idx = IdxOk w idx
+  | 0, nil, nil, v=w, (), q
+  | 0, :: a v, :: a1 w, v=w, suc<=suc p, suc<=suc q =>
+    (pmap (\lam x => IdxOk x 0) v=w : IdxOk (a :: v) 0 = IdxOk (a1 :: w) 0)
+  | suc idx, nil, nil, v=w, (), q
+  | suc idx, :: a v, :: a1 w, v=w, suc<=suc p, suc<=suc q =>
+      (pmap (\lam x => IdxOk x (suc idx)) v=w : IdxOk (a :: v) (suc idx) = IdxOk (a1 :: w) (suc idx))
+
+\func ith (v : List Nat) (idx : Nat) (p : IdxOk v idx) : Nat
+  | nil, 0, proof p => contradiction {p}
+  | nil, suc idx, proof p => contradiction {p}
+  | :: a v, 0, proof p => a
+  | :: a v, suc idx, proof p => ith v idx (proof (<=-pred-i p))
+
+\func test10 (a : Nat) (b : Nat) (p : just a = just b) : a = b
+  | 0, 0, p => idp
+  | suc a, suc b, p => test10 a b p

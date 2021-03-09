@@ -1,0 +1,301 @@
+\import Arith.Nat
+\import Data.Bool
+\import Function
+\import Logic
+\import Logic.Meta
+\import Order.PartialOrder
+\import Paths
+\import Paths.Meta
+
+--\import Paths
+\open Nat
+--
+--\data NatLess (a b : Nat) \with
+--  | 0, suc m => natless_less
+--  | suc m, suc n => natless_next (NatLess m n)
+--
+--\func zerolesszero : NatLess 1 3 => natless_next (natless_less)
+--
+--\func n_less_next (a : Nat) : NatLess a (a + 1)
+--  | 0 => natless_less
+--  | suc a => natless_next (n_less_next a)
+--
+--\func n_less_sum (a b : Nat) : NatLess a (a + suc b)
+--  | 0, 0 => natless_less
+--  | 0, suc b => natless_less
+--  | suc a, 0 => n_less_next (suc a)
+--  | suc a', suc b' => natless_next (n_less_sum a' (suc b'))
+--
+---- пока a < b не свернулось
+--\func trans {a b c : Nat} (p : NatLess a b) (q : NatLess b c) : NatLess a c
+--  | 0, suc b, suc c, natless_less, natless_next q => natless_less
+--  | suc a, suc b, suc c, natless_next p, natless_next q => natless_next (trans a b c p q)
+--
+--\func _10 (a c : Nat) (p : NatLess a c) : NatLess 0 c
+--  | 0, suc c, natless_less => natless_less
+--  | suc a, suc c, natless_next p => natless_less
+--
+--\func n_z (c : Nat) : NatLess 0 (suc c) => natless_less
+--
+--\func m_zero (a c : Nat) (p : c = 0) : (a * c) = 0
+--  | 0, 0, p => idp
+--  | suc a, 0, p => m_zero a 0 p
+--
+--\func m_lesszero (a c : Nat) : NatLess (c * 0) (suc a) => natless_less
+--
+---- a < b => a + c < b + c
+--\func n_l2 (a b c : Nat) (p : NatLess a b) : NatLess (a + c) (b + c)
+--  | 0, suc b, 0, natless_less => natless_less
+--  | 0, suc b, suc c, natless_less => natless_next (n_l2 0 (suc b) c natless_less)
+--  | suc a, suc b, 0, natless_next p => natless_next (n_l2 a b 0 p)
+--  | suc a, suc b, suc c, natless_next p => natless_next (n_l2 (suc a) (suc b) c (natless_next p))
+--
+---- a < b => a * c < b * c
+--\func n_m2 (a b c d : Nat) (q : NatLess a b) (p : NatLess c d) : NatLess (a * c) (b * d)
+--  | 0, suc b, 0, suc d, natless_less, natless_less => natless_less
+--  | 0, suc b, suc c, suc d, natless_less, natless_next p => n_m2 0 (suc b) c d natless_less p
+--  | suc a, suc b, 0, suc d, natless_next q, natless_less => natless_less
+--
+--\func pow (x p : Nat) : Nat \elim p
+--  | 0 => suc zero
+--  | suc p => pow x p * x
+--
+---- a < b => a < b + c
+--\func less_sum (a b c : Nat) (p : NatLess a b) : NatLess a (0 + b + c)
+--  | 0, suc b, 0, natless_less => natless_less
+--  | 0, suc b, suc c, natless_less => natless_less
+--  | suc a, suc b, 0, natless_next p => natless_next (less_sum a b 0 p)
+--  | suc a, suc b, suc c, natless_next p => natless_next
+--    (trans p (less_sum b (suc b) c (n_less_next b)))
+--
+--
+--\func dec (a : Nat) (p : NatLess 0 a) : Nat
+--  | suc a, natless_less => a
+--
+---- a < 2^a
+----
+---- 2^(a+1) = 2^a * 2 = 2^a + 2^a > 2^a + 1 > a + 1
+---- pow 2 a = 2 * pow 2 (a - 1)
+--
+--\func pow2 (a : Nat) : NatLess a (pow 2 a)
+--  | 0 => natless_less
+--  | suc a => less_sum
+--      (suc a)
+--      (suc (pow 2 a))
+--      (dec (pow 2 a) (gPow a))
+--      (natless_next (pow2 a)) -- a < 2^a
+--  -- | suc a => natless_next (pow2 a) -- a + 1 < 2^a + 1
+--  -- a + 1 < 2*2^a + 1
+--  -- a < 2*2^a
+--
+---- a + 1 < 2^a
+---- a + 2 < 2 * 2^a
+---- a + 2 < 2^a + 2^a
+---- (a + 1) + 1 < (2^a) + 2^a
+---- 1 < 2^a
+---- 1 < 2^a
+--
+--\func az (a : Nat) : a = 0 + a
+--  | 0 => idp
+--  | suc a => pmap (\lam x => x + 1) (az a)
+--
+--\func AZ {a b c : Nat} (p : b = c) (q : NatLess a b) : NatLess a c =>
+--  transport (\lam x => x) (pmap (\lam x => NatLess a x) p) q
+--
+--\func gPow (a : Nat) : NatLess 0 (pow 2 a) \elim a
+--  | 0 => natless_less
+--  | suc a => less_sum 0 (pow 2 a) (pow 2 a) (gPow a)
+--
+---- \data GCD
+\func \infixr 3 && (P Q : \Type) => \Sigma P Q
+
+-- ((P && Q) -> R) -> P -> Q -> R.
+\func some&& { P Q R : \Type } (pq : P && Q -> R) (p : P) (q : Q) : R => pq (p, q)
+
+-- (P -> Q -> R) -> (P && Q) -> R.
+\func some&&2 { P Q R : \Type } (pqr : P -> Q -> R) (pq : P && Q) : R => pqr (pq.1) (pq.2)
+
+\data \infixr 2 || (P Q : \Type)
+  | inl P
+  | inr Q
+
+---- (P -> R) -> (Q -> R) -> P || Q -> R.
+--\func some|| {P Q R : \Type} (pr : P -> R) (qr : Q -> R) (x : P || Q) : R
+
+\data isDivider (n d : Nat)
+  | devide (n `mod` d = 0)
+
+\func up : (isDivider 15 5) => devide (idpe (15 `mod` 5))
+
+\func eq2 (a : Nat) {b c : Nat} (p : b = c) : a + b = a + c => pmap (\lam x => a + x) p
+
+\func exactlyDiv {a b : Nat} (p : mod a b = 0) : b * (div a b) = a =>
+  (eq2 (b * (div a b)) (inv p)) *> divModProp a b
+-- eq2 (b * (div a b)) p
+
+-- => divModProp a b
+  -- | (devide p) => divModProp a b
+
+\func modZero (k m c : Nat) : (isDivider (mod (c * k) (c * m)) c) =>
+-- c * k `mod` c * m = 0
+-- \lemma divModProp (n m : Nat) : m * div n m + mod n m = n
+-- m := c, n := ck%cm
+-- c * ((ck%cm) // c) + (ck%cm) % c = ck%cm
+
+-- ck = cm * P + (mod ck cm)
+-- c | ck, c | cm =>
+
+\func isDivFromMul (a b : Nat) : mod (a * b) b = 0 => divModProp (a * b) b
+  -- (a * b) mod b = 0
+  -- \lemma divModProp (n m : Nat) : m * div n m + mod n m = n
+  -- \lemma exactlyDiv mod a b = 0 => b * (div a b) = a
+  -- divModProp (a*b) b === b * div (a * b) b + mod (a * b) b = a * b
+  -- ?? div (a * b) b = a
+
+
+\func _0*a=0 (a : Nat) : 0 * a = 0 => NatSemiring.*-comm
+
+\func divZeroL (a : Nat) : div 0 a = 0 => divModProp 0 a
+
+\func divZeroR (a : Nat) : div a 0 = 0 =>
+  (inv (pmap (\lam x => x + a) (_0*a=0 a)))
+  -- *>
+  -- divModProp a 0
+
+\func divZero (a b : Nat) : div (a * b) b = a
+  | 0, b => pmap (\lam x => div x b) (_0*a=0 b) -- div (0 * b) b ?= div 0 b ?= 0 = a
+  -- | suc a, 0 => {?} -- div (a * 0) 0 ?= div 0 0 = 0 = 0
+  | suc a, b => divZero a b
+-- Ok: div (a-1)*b b = a-1
+-- div ((a-1) * b + b) b = a
+
+\func =to<= {a b : Nat} (p : a = b) : a <= b
+  | {0}, {0}, p => zero<=_
+  | {suc a}, {suc b}, p => suc<=suc (=to<= (pmap pred p))
+
+\func even (a : Nat) : Bool
+  | 0 => true
+  | suc a => not (even a)
+
+\data Unit | unit
+
+\func <=-trans=R {a b c : Nat} (p : a <= b) (q : b = c) : (a <= c) =>
+  transport (\lam x => a <= x) q p
+
+\func <=-trans=L {a b c : Nat} (p : a <= b) (q : a = c) : (c <= b) =>
+  transport (\lam x => x <= b) q p
+
+
+\func <=-a*b<=a*c (a : Nat) {b c : Nat} (p : b <= c) : (a * b) <= (a * c)
+  | 0, {b}, {c}, p =>
+    <=-transitive
+        (<=-trans=L (zero<=_ {0}) (inv (_0*a=0 b)) : 0 * b <= 0)
+        (zero<=_ {0 * c} : 0 <= 0 * c)
+  | suc a, {b}, {c}, p =>
+    <=-trans=R (<=-trans=L ((<=_+ (<=-a*b<=a*c a p) (p))) (inv (m a b))) (inv (m a c))
+    \where {
+      \func m (a b : Nat) : suc a * b = a * b + b =>
+        NatSemiring.*-comm {suc a} {b} *> p a b
+      \func p (a b : Nat) : b * a + b = a * b + b =>
+        pmap (\lam x => x + b) (NatSemiring.*-comm {b} {a})
+    }
+
+-- (a + 1) * b <= (a + 1) * c
+-- a * b + b <= a * c + c
+-- a * b <= a * c && b <= c
+
+\func =+a {a b c : Nat} (p : a + b = a + c) : b = c
+  | {0}, {b}, {c}, p =>
+    rewrite (NatSemiring.+-comm : b = 0 + b) (rewrite (NatSemiring.+-comm : c = 0 + c) p)
+  | {suc a}, {b}, {c}, p => -- : (suc a) + b = (suc a + c)
+
+
+\func a_div_a=1 (a : Nat) : div a a = 1 => <=-antisymmetric (a_div_a<=1 a) (a_div_a>=1 a)
+  \where {
+    \lemma a_div_a<=1 (a : Nat) : div a a <= 1 =>
+      \where {
+        \func let_0 (a : Nat) (p : a + a <= a) : a = 0 =>
+          <=-antisymmetric p ({?} : a <= a + a)
+
+        \func let_1 (a : Nat) (p : 2 <= div a a) : 0 + a + a <= a =>
+          (<=-transitive
+            (contr_1 a p : a * 2 <= a * (div a a))
+            (drop_mod a : a * (div a a) <= a))
+
+        \func drop_mod (a : Nat) : a * (div a a) <= a =>
+          <=-transitive (<=_0_+-right (mod a a)) (=to<= (divModProp a a))
+        \func contr_1 (a : Nat) {b : Nat} (p : 2 <= b) : a * 2 <= a * b => <=-a*b<=a*c a p
+        --\func div_<= {a b c : Nat} (q : 1 <= a) (p : a * b <= a * c) : b <= c
+        --  | {a}, {suc b}, {c}, q, p => div_<= {a} {b} {c} q (<=_+ p (=to<= (idpe a)))
+      }
+    \lemma a_div_a>=1 (a : Nat) (q : 1 <= a) (p : div a a = 0) : Empty => contradiction {contr_-1s q p}
+      \where {
+        -- \func drop_mod (a : Nat) (p : a >= 1) : a <= a * (div a a) => modProp a p
+        \func realcont {a : Nat} (q : 1 <= a) (p : div a a = 0) : Empty =>
+          transport cont p unit -- Unit
+        \func cont (a : Nat) : \Type => \case (even a) \with {
+          | true => \Sigma
+          | false => Empty
+        }
+        \func contr_-1s {a : Nat} (q : 1 <= a) (p : div a a = 0) : suc a = a => <=-antisymmetric (contr_-1 q p) <=-suc
+        \func contr_-1 {a : Nat} (q : 1 <= a) (p : div a a = 0) : suc a <= a =>
+          <=-transitive (=to<= (contr_0 q p)) (contr q)
+        \func contr {a : Nat} (q : 1 <= a) : suc (mod a a) <= a =>
+          modProp a q
+        \func contr_0 {a : Nat} (q : 1 <= a) (p : div a a = 0) : suc a = suc (mod a a) =>
+          inv (pmap suc ((contr_1 q p) *> (divModProp a a)))
+        \func contr_1 {a : Nat} (q : 1 <= a) (p : div a a = 0) : mod a a = a * div a a + mod a a =>
+          inv ((pmap (\lam x => a * x + mod a a) p) *> NatSemiring.zro-left)
+
+        -- pmap (\lam x => x + mod a a) (a*0=0 a)) *> divModProp a a
+
+      }
+  }
+
+\func a*b_mod_a=0 (a b : Nat) : mod (a * b) a = 0 => a_mod_a=0
+  \where {
+    \func a_mod_a=0 {a : Nat} : mod a a = 0
+      | {0} => idp
+      | {suc a} =>
+  }
+
+  -- ??: mod ((a - 1) * b) b => mod (a * b) a
+  -- 1. mod b b = 0
+  -- 2. mod (a + b) c = mod a c + mod b c
+  -- 3. mod ((a - 1) * b) b + mod b b =
+  --       mod ((a - 1) * b + b) b = mod (a * b) b
+  -- mod ((a - 1) * b) b => mod (a * b) a
+
+-- depends only on mod (a * b) b = 0
+\func divSum {a b k : Nat} (c : Nat)
+             (p : mod a k = 0)
+             (q : mod b k = 0)
+             (r : a + b = c)
+  : (k * (div a k + div b k)) = c =>
+  -- : (mod c k = 0) =>
+  (NatSemiring.ldistr k (div a k) (div b k) *>                    -- k * (...) = k * a/k + k * b/k
+    (pmap2 (\lam x y => x + y) (exactlyDiv p) (exactlyDiv q))) *> -- k * a/k + k * b/k = a + b
+    r                                                             -- a + b = c
+  -- pmap (\lam x => k * div a k + x) (exactlyDiv)
+
+
+-- 1. a = b + c, isDiv a k, isDiv b k => isDiv c k
+-- 2. isDiv (c * k) c
+-- 3. c * k = (c * m) * ((c * k) div (c * m)) + (c * k) mod (c * m) <-- divModProb
+-- 4. isDiv ((c * k) mod (c * m)) c
+
+-- mod k m := L => mod ck cm := cL
+--
+
+
+\func gcdSave {a b c : Nat} (aDivc : isDivider a c) (bDivc : isDivider b c) : (isDivider (mod a b) c) =>
+  |
+-- a = c * k
+-- b = c * m
+-- mod a b = mod (c * k) (c * m) = 0
+  -- devide (idpe (15 `mod` 5))
+
+--  | 0 => p
+--  | 1 => natless_next natless_next natless_less
+--  | suc a => less_sum 1 (pow 2 a * 2) (pow 2 a * 2) (gPow a)
+

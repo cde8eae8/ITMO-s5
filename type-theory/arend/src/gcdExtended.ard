@@ -1,0 +1,556 @@
+\import Algebra.Group
+\import Algebra.Monoid
+\import Algebra.Semiring
+\import Arith.Int
+\import Arith.Nat
+\import HLevel
+\import Relation.Equivalence
+\import Logic
+\import Logic.Meta
+\import Paths
+\import Paths.Meta
+\import Order.LinearOrder
+\import Arith.Int
+\import Data.Bool
+------------------------------------------------------------
+\import QuotientRing
+\import first.leq_ok (<=-*_add_a, <=-pred-i, =to<=, a<=b&a!=b=>a'<=b, a<=b&a>b, a<=suc_a)
+\import first.eq_ok
+\import first.gcd_ok
+\import first.mod_n_ok (_1<=suc_a, div_n*a_a=n, drop_mod, mod_a*n_a=0)
+
+\func !suc_a<=a {a : Nat} (q : suc a Nat.<= a) : Empty
+  | {suc a}, Nat.suc<=suc q => !suc_a<=a q
+
+\func _0/=1 (p : 0 = 1) : Empty
+
+\func \infixr 3 && (P Q : \Type) => \Sigma P Q
+
+\func _0<=nat (a : Nat) : 0 IntLE.<= Int.fromNat a => IntLE.pos<=pos Nat.zero<=_
+
+\data isPrime (p : Nat) (_2<=p : 2 Nat.<= p)
+  | proof (\Pi (a : Nat) -> (2 Nat.<= a) -> (suc a Nat.<= p) -> (Not (Nat.mod p a = 0)))
+
+\func =-bool (a b : Nat) : Bool
+  | 0, 0 => true
+  | 0, suc b => false
+  | suc a, 0 => false
+  | suc a, suc b => =-bool a b
+
+\func =-bool-to-= {a b : Nat} (p : =-bool a b = true) : a = b
+  | {0}, {0}, p => idp
+  | {0}, {suc b}, p => contradiction
+  | {suc a}, {suc b}, p => pmap suc (=-bool-to-= {a} {b} p)
+
+\func =-bool-to-=-f {a b : Nat} (p : =-bool a b = false) (q : a = b) : Empty
+  | {0}, {suc b}, p, ()
+  | {suc a}, {0}, p, ()
+  | {suc a}, {suc b}, p, q => =-bool-to-=-f {a} {b} p (a'=b'=>a=b q)
+
+\func =-to-=-bool {a b : Nat} (p : a = b) : =-bool a b = true
+  | {0}, {0}, p => idp
+  | {suc a}, {suc b}, p => =-to-=-bool {a} {b} (a'=b'=>a=b p)
+
+\func gcd_a_prime=1
+  (a p : Nat)
+  (_2<=p : 2 Nat.<= p)
+  (p-prime : isPrime p _2<=p)
+  (moda_p!=0 : Not (Nat.mod a p = 0))
+  : gcd a p = 1 =>
+  \let | res => gcd a p \in
+  \case <=-bool res p \as less, idp : <=-bool res p = less \with {
+    | true, p1 =>
+      \let | gcd<=p => <=-bool-to-<= p1
+      \in
+      \case =-bool res p \as e, idp : =-bool res p = e \with {
+        | true, p2 =>
+          \let | gcd=p => =-bool-to-= p2
+          \in
+          absurd (moda_p!=0 (transport (\lam x => Nat.mod a x = 0) gcd=p (gcd-isDivider a p).2))
+        | false, p2 =>
+          \let
+            | gcd!=p => =-bool-to-=-f p2
+            | gcd<p => (a<=b&a!=b=>a'<=b gcd<=p gcd!=p : suc res Nat.<= p)
+          \in
+          \case <=-bool 2 res \as e2, idp : <=-bool 2 res = e2 \with {
+            | true, p3 => absurd (helper a p res _2<=p p-prime (<=-bool-to-<= p3) gcd<p idp)
+            | false, p3 => \case res \as v, idp : res = v \with {
+              | 0, res=0 =>
+                contradiction {transport (\lam x => 2 Nat.<= x) (transport (\lam x => Nat.mod p x = 0) res=0 (gcd-isDivider a p).1) _2<=p}
+              | 1, p => p
+              | suc (suc n), p =>
+                absurd
+                    (a<=b&a>b (transport (\lam x => suc x Nat.<= 2) p (<=-bool-to-<=-f p3))
+                        (Nat.suc<=suc (Nat.suc<=suc (_1<=suc_a n)) : 3 Nat.<= suc (suc (suc n))))
+            }
+          }
+      }
+    | false, p1 =>
+      \let
+        | p<gcd => (<=-bool-to-<=-f p1 : suc p Nat.<= res)
+        | mod_p_gcd=p => (a<b=>moda_b=a p<gcd : Nat.mod p (gcd a p) = p)
+      \in
+      contradiction
+          {transport (\lam x => 2 Nat.<= x) ((inv mod_p_gcd=p) *> (gcd-isDivider a p).1 : p = 0) (_2<=p)}
+  }
+  \where {
+    \func helper
+      (a p b : Nat)
+      (_2<=p : 2 Nat.<= p)
+      (p-prime : isPrime p _2<=p)
+      (_2<=b : (2 Nat.<= b))
+      (b<p : suc b Nat.<= p)
+      (q : gcd a p = b) : Empty \elim p-prime
+      | proof pr => pr b _2<=b b<p (transport (\lam x => Nat.mod p x = 0) (q) (gcd-isDivider a p).1)
+
+    \func a<b=>moda_b=a {a b : Nat} (p : suc a Nat.<= b) : (Nat.mod a b = a) =>
+      +-comm *> (transport (\lam x => x + Nat.mod a b = a)
+      (((pmap (\lam x => b * x) (a<b=>diva_b=0 a b p)) *> (main1.a*0=0 b) : b * Nat.div a b = 0))
+      (Nat.divModProp a b))
+
+    \func a<b=>diva_b=0 (a b : Nat) (p : suc a Nat.<= b) : (Nat.div a b = 0) =>
+      \case Nat.div a b \as e, idp : Nat.div a b = e \with {
+        | 0, p1 => p1
+        | suc e, p1 =>
+        absurd (a<=b&a>b
+        (NatLE.<=-transitive (=to<= +-comm)
+          (NatLE.<=-transitive (<=-*_add_a {b} {1} {Nat.div a b}
+            (transport (\lam x => 1 Nat.<= x) (inv p1) (_1<=suc_a e))) (drop_mod a b))) p)
+      }
+  }
+
+\func main1
+  (a b p : Nat)
+  (_2<=p : 2 Nat.<= p)
+  (p-prime : isPrime p _2<=p)
+  (_1<=a : 1 Nat.<= a)
+  (_1<=b : 1 Nat.<= b)
+  (a<=p : suc a Nat.<= p)
+  (b<=p : suc b Nat.<= p)
+  (q : Nat.mod (a * b) p = 0) : Empty =>
+  \let | gcd_a_p=1 => (gcd_a_prime=1 a p _2<=p p-prime
+      (\lam (mod_a_p=0 : Nat.mod a p = 0) =>
+          contradiction {transport
+            (\lam x => 1 Nat.<= x)
+            (inv ((inv mod_a_p=0) *> gcd_a_prime=1.a<b=>moda_b=a a<=p : 0 = a))
+            _1<=a}
+      ) : gcd a p = 1)
+       | b=div_b_p*p =>
+         (mod_b_c=0=>b=div_b_c*c b p (gcd_of_a_b=1&ac:b=>c:b a p b gcd_a_p=1 q) : b = Nat.div b p * p)
+       | empty => l (transport (\lam x => suc x Nat.<= p) b=div_b_p*p b<=p)
+  \in
+    \case Nat.div b p \as d, idp : d = Nat.div b p \with {
+      | 0, ip =>
+        \let b=0 => transport (\lam x => x = 0) (inv b=div_b_p*p)
+            ((pmap (\lam x => x * p) (inv ip) : Nat.div b p * p = 0 * p) *>
+            (*-comm : 0 * p = p * 0) *>
+            (a*0=0 p : p * 0 = 0) : Nat.div b p * p = 0)
+        \in contradiction {transport (\lam x => 1 Nat.<= x) (b=0) (_1<=b)}
+      | suc n, id => empty (transport (\lam x => 1 Nat.<= x) id (_1<=suc_a n))
+    }
+  \where {
+    \func l {a p : Nat} (v : suc (a * p) Nat.<= p) (q : 1 Nat.<= a) : Empty =>
+      !suc_a<=a
+          (NatLE.<=-transitive
+              (NatLE.<=-transitive v (NatLE.<=-transitive (=to<= +-comm) (<=-*_add_a {p} {1} {a} q) : p Nat.<= p * a))
+              (=to<= *-comm : p * a Nat.<= a * p))
+
+    \func a*0=0 (a : Nat) : a * 0 = 0
+      | 0 => idp
+      | suc a => idp
+  }
+
+\func mainQR
+  (p : Nat)
+  (_2<=p : 2 Nat.<= p)
+  (p-prime : isPrime p _2<=p)
+  (p-okMod : ModOk p)
+  (a : QuotientRing p p-okMod)
+  (b : QuotientRing p p-okMod)
+  (a!=0 : Not (a = num 0))
+  (b!=0 : Not (b = num 0))
+  (q : a QuotientRing.* b = num 0)
+  : Empty =>
+  main1
+      (openQR p p-okMod a)
+      (openQR p p-okMod b)
+      p _2<=p p-prime
+      (a!=0=>a<=1 (\lam (a=num_0 : openQR p p-okMod a = 0) => a!=0 (l2 p-okMod a a=num_0)))
+      (a!=0=>a<=1 (\lam (b=num_0 : openQR p p-okMod b = 0) => b!=0 (l2 p-okMod b b=num_0)))
+      (numInRange.max-proof (open-prop1 p p-okMod a))
+      (numInRange.max-proof (open-prop1 p p-okMod b))
+      {?}
+  \where {
+    \func l {m : Nat} (okMod : ModOk m) : (0 = openQR m okMod (num 0))
+      | {m}, ModOk.proof _x => inv mod0_a=0
+
+    \func l2 {m : Nat} (okMod : ModOk m) (a : QuotientRing m okMod)
+      (p : openQR m okMod a = 0) : a = num 0
+      | {m}, ModOk.proof _x, num n, p =>
+         (mod=QR n m (ModOk.proof _x) : num n = num (Nat.mod n m)) *> (pmap num p : num (Nat.mod n m) = num 0)
+
+    \func a!=0=>a<=1 {a : Nat} (a!=0 : Not (a = 0)) : 1 Nat.<= a
+      | {0}, a!=0 => contradiction
+      | {suc a}, a!=0 => _1<=suc_a a
+  }
+
+
+\func gcd_of_a_b=1&ac:b=>c:b (a b c : Nat)
+                             (g : gcd a b = 1)
+                             (q : Nat.mod (a * c) b = 0)
+  : Nat.mod c b = 0 =>
+  \let | proof => (gcd-extended a b) \in
+    \case proof \with {
+      | byLeft l =>
+        l-1 (l0 c q (l1 {a} {b} {l.2.1} {l.2.2} c (l.2.3)))
+      | byRight r => absurd (r g)
+    }
+
+  \where {
+    \func l-1 {a b : Nat} {c : Int}
+              (p : Int.fromNat a = Int.fromNat b * c)
+      : Nat.mod a b = 0 =>
+      \let
+        | _0<=c => ({?} : 0 IntLE.<= c)
+        | c' => un-pos c _0<=c \in
+        transportInv (\lam x => Nat.mod x b = 0)
+            (Int_a=Int_b=>a=b (l-1-helper _0<=c p) : a = b * c') (mod_a*n_a=0 b c')
+      \where {
+        \func un-pos (c : Int) (p : 0 IntLE.<= c) : Nat
+          | pos n, IntLE.pos<=pos _x => n
+
+        \func un-pos-inv (c : Int) (p : 0 IntLE.<= c) : c = Int.fromNat (un-pos c p)
+          | pos n, IntLE.pos<=pos _x => idp
+
+        \func l-1-helper
+          {a b : Nat} {c : Int}
+          (p : 0 IntLE.<= c)
+          (q : Int.fromNat a = Int.fromNat b * c)
+          : Int.fromNat a = Int.fromNat (b * un-pos c p) =>
+          q *>
+          (pmap (\lam x => Int.fromNat b * x) (un-pos-inv c p))
+
+        \func Int_a=Int_b=>a=b
+          {a b : Nat}
+          (q : Int.fromNat a = Int.fromNat b)
+          : a = b
+          | {0}, {0}, q => idp
+          | {suc a}, {suc b}, q => pmap suc (Int_a=Int_b=>a=b {a} {b} (pmap Int.fromNat (a'=b'=>a=b_i q)))
+          \where {
+            \func a'=b'=>a=b_i {a b : Nat} (p : Int.fromNat (suc a) = Int.fromNat (suc b)) : (a = b)
+              | {0}, {0}, p => idp
+              | {suc a}, {suc b}, p => pmap (\lam x => x + 1) (a'=b'=>a=b_i {a} {b} p)
+          }
+      }
+
+    \func l0 {a b : Nat} {x y : Int} (c : Nat) (acm : Nat.mod (a * c) b = 0)
+             (p : Int.fromNat (a * c) * x + Int.fromNat (b * c) * y = Int.fromNat c)
+      : Int.fromNat c = (Int.fromNat b) * (Int.fromNat (Nat.div (a * c) b) * x + Int.fromNat (Nat.div (b * c) b) * y) =>
+      ( inv p
+      : Int.fromNat c = Int.fromNat (a * c) * x + Int.fromNat (b * c) * y
+      ) *>
+      (pmap2 (\lam p q => Int.fromNat p * x + Int.fromNat q * y)
+          (mod_b_c=0=>b=div_b_c*c (a * c) b acm)
+          (mod_b_c=0=>b=div_b_c*c (b * c) b (mod_a*n_a=0 b c))
+      : Int.fromNat (a * c) * x + Int.fromNat (b * c) * y
+        = Int.fromNat ((Nat.div (a * c) b) * b) * x + Int.fromNat ((Nat.div (b * c) b) * b) * y
+      ) *>
+      (pmap2 (\lam p q => Int.fromNat p * x + Int.fromNat q * y) (*-comm) (*-comm)
+      : Int.fromNat ((Nat.div (a * c) b) * b) * x + Int.fromNat ((Nat.div (b * c) b) * b) * y
+        = Int.fromNat (b * (Nat.div (a * c) b)) * x + Int.fromNat (b * (Nat.div (b * c) b)) * y
+      ) *>
+      (pmap2 (\lam p q => p * x + q * y) idp idp
+      : Int.fromNat (b * (Nat.div (a * c) b)) * x + Int.fromNat (b * (Nat.div (b * c) b)) * y
+        = Int.fromNat b * Int.fromNat (Nat.div (a * c) b) * x + Int.fromNat b * Int.fromNat (Nat.div (b * c) b) * y
+      ) *>
+      (pmap2 (\lam p q => p + q) *-assoc *-assoc
+      : Int.fromNat b * Int.fromNat (Nat.div (a * c) b) * x + Int.fromNat b * Int.fromNat (Nat.div (b * c) b) * y
+        = Int.fromNat b * (Int.fromNat (Nat.div (a * c) b) * x) + Int.fromNat b * (Int.fromNat (Nat.div (b * c) b) * y)
+      ) *>
+      (inv (ldistr (Int.fromNat b) (Int.fromNat (Nat.div (a * c) b) * x) (Int.fromNat (Nat.div (b * c) b) * y))
+      : Int.fromNat b * (Int.fromNat (Nat.div (a * c) b) * x) + Int.fromNat b * (Int.fromNat (Nat.div (b * c) b) * y)
+        = Int.fromNat b * (Int.fromNat (Nat.div (a * c) b) * x + Int.fromNat (Nat.div (b * c) b) * y)
+      )
+
+    \func l1 {a b : Nat} {x y : Int} (c : Nat)
+             (p : Int.fromNat a * x + Int.fromNat b * y = 1)
+      : (Int.fromNat (a * c) * x + Int.fromNat (b * c) * y = c) =>
+      ( pmap2 (\lam p q => Int.fromNat (p) * x + Int.fromNat (q) * y) (*-comm) (*-comm)
+      : Int.fromNat (a * c) * x + Int.fromNat (b * c) * y
+        = Int.fromNat (c * a) * x + Int.fromNat (c * b) * y
+      ) *>
+      ( pmap2 (\lam p q => p * x + q * y) (inv a*b=a*b) (inv a*b=a*b)
+      : Int.fromNat (c * a) * x + Int.fromNat (c * b) * y
+        = (Int.fromNat c) * (Int.fromNat a) * x + (Int.fromNat c) * (Int.fromNat b) * y
+      ) *>
+      ( l0 c p
+      : (Int.fromNat c) * (Int.fromNat a) * x + (Int.fromNat c) * (Int.fromNat b) * y = c
+      )
+      \where {
+        \func l0 {a b : Nat} {x y : Int} (c : Nat)
+                 (p : Int.fromNat a * x + Int.fromNat b * y = 1)
+          : Int.fromNat c * Int.fromNat a * x + Int.fromNat c * Int.fromNat b * y = c =>
+          (pmap2 (\lam x y => x + y) (IntRing.*-assoc) (IntRing.*-assoc)
+          : Int.fromNat c * Int.fromNat a * x + Int.fromNat c * Int.fromNat b * y
+            = Int.fromNat c * (Int.fromNat a * x) + Int.fromNat c * (Int.fromNat b * y))
+            *>
+          (inv (ldistr (Int.fromNat c) (Int.fromNat a * x) (Int.fromNat b * y))
+          : Int.fromNat c * (Int.fromNat a * x) + Int.fromNat c * (Int.fromNat b * y)
+            = Int.fromNat c * (Int.fromNat a * x + Int.fromNat b * y))
+            *>
+          (pmap (\lam x => Int.fromNat c * x) p) *> (i*1=i : Int.fromNat c * pos 1 = Int.fromNat c)
+
+        \func i*1=i {a : Int} : a * pos 1 = a
+          | {pos n} => (pmap pos ((NatSemiring.+-comm : 0 + n = n) *> idp : n * 1 = n) : pos (n * 1) = pos n)
+          | {neg (suc n)} => (pmap neg (NatSemiring.+-comm {0} {suc n}: 0 + (suc n) = suc n) : neg ((suc n) * 1) = neg (suc n))
+
+        \func a*b=a*b {a b : Nat} : Int.fromNat a * Int.fromNat b = Int.fromNat (a * b)
+          | {0}, {0} => idp
+          | {0}, {suc b} => idp
+          | {suc a}, {0} => idp
+          | {suc a}, {suc b} => idp
+      }
+
+  }
+
+\func gcd-extended
+  (a b : Nat)
+  : ((gcd a b = 1) && (\Sigma (x y : Int)
+                              ((Int.fromNat a) IntRing.* x IntRing.+ (Int.fromNat b) IntRing.* y = 1)))
+  || (Not (gcd a b = 1)) => gcd-extended-helper-n a b a (=to<= idp)
+
+\func gcd-extended-helper-n
+  (a b : Nat)
+  (n : Nat)
+  (q : a Nat.<= n)
+  : ((gcd a b = 1) && (\Sigma (x y : Int)
+                              ((Int.fromNat a) IntRing.* x IntRing.+ (Int.fromNat b) IntRing.* y = 1)))
+  || (Not (gcd a b = 1))
+  | 0, 0, n, q => byRight (rewrite (gcd0 {0}) _0/=1)
+  | 0, 1, n, q => byLeft (gcd0, (0, 1, idp))
+  | 0, suc (suc b'), n, q =>
+    \let | b => suc (suc b')
+         | _2<=b => (Nat.suc<=suc (_1<=suc_a b') : 2 Nat.<= b)
+    \in
+      byRight (\lam (x : gcd 0 b = 1) =>
+          (first.leq_ok.a<=b&a>b {2} {gcd 0 b}
+              ((NatLE.<=-transitive (_2<=b : 2 Nat.<= b) (=to<= (inv gcd0) : b Nat.<= gcd 0 b) : 2 Nat.<= gcd 0 b)
+              : 2 Nat.<= gcd 0 b)
+              (=to<= (pmap suc x) : suc (gcd 0 b) Nat.<= 2)))
+  | suc a', b, suc n, q =>
+    \let | a => suc a'
+         | proof =>  (gcd-extended-helper-n (Nat.mod b a) a n
+             (gcd-helper-n.p1 a b n q (_1<=suc_a a' : 1 Nat.<= a) : Nat.mod b a Nat.<= n))
+    \in \case proof \with {
+      | byLeft recur =>
+        \let
+          | x1 => recur.2.1
+          | y1 => recur.2.2 \in
+          byLeft (
+            (transport (\lam x => x = 1) (inv (gcd-step (_1<=suc_a a'))) recur.1 : gcd a b = 1),
+            (y1 IntRing.+ (IntRing.negative x1 IntRing.* (Nat.div b a)), x1,
+             (idp) *>
+             (extended-gcd-iter-proof {a} {b} {x1} {y1} {Nat.div b a}
+             : Int.fromNat a * (y1 + negative x1 * Int.fromNat (Nat.div b a)) + Int.fromNat b * x1 =
+             (Int.fromNat b + negative (Int.fromNat a) * Int.fromNat (Nat.div b a)) * x1 + Int.fromNat a * y1
+             ) *>
+             (rewriteF (mod=_ b a)
+                 (recur.2.3)
+             : (Int.fromNat b + negative (Int.fromNat a) * Int.fromNat (Nat.div b a)) * x1 + Int.fromNat a * y1 =
+             Int.fromNat 1
+             )
+
+            ))
+      | byRight recur => byRight (\lam x => recur
+          (transport (\lam x => x = 1) (gcd-step (_1<=suc_a a')) x : gcd (Nat.mod b a) a = 1))
+    }
+
+  \where {
+    \func gcd0 {b : Nat} : gcd 0 b = b
+      | {0} => idp
+      | {suc b} => idp
+
+    \func gcd-step {a b : Nat} (p : 1 Nat.<= a) : gcd a b = gcd (Nat.mod b a) a =>
+      \case <=-bool a b \as less,
+            idp \as id : <=-bool a b = less
+      \with {
+        | true, id =>
+          \let | pr => ((NatLE.<=-transitive (a<=suc_a) (Nat.modProp b p)) : Nat.mod b a Nat.<= a)
+          \in
+            transport2 (\lam x y => x = y)
+                (inv (link-a<=b-bool a b (id)))
+                (inv (link-a<=b-bool (Nat.mod b a) a (<=-to-<=-bool pr)))
+                (gcd-step-helper a b a (Nat.mod b a) (<=-bool-to-<= id) (=to<= idp)
+                    (<=-bool-to-<= (<=-to-<=-bool pr))
+                    (=to<= idp)
+                    (NatLE.<=-transitive (a<=suc_a) (Nat.modProp b p)))
+        | false, id => (gcd-sym : gcd a b = gcd b a) *>
+        (pmap (\lam x => gcd x a)
+            (inv (gcd_a_prime=1.a<b=>moda_b=a (<=-bool-to-<=-f id)) : b = Nat.mod b a)
+        : gcd b a = gcd (Nat.mod b a) a)
+      }
+      \where {
+        \func gcd-sym {a b : Nat} : gcd a b = gcd b a =>
+          \case =-bool a b \as e, idp : =-bool a b = e \with {
+            | true, e => transport (\lam x => gcd a x = gcd x a)
+                ((=-bool-to-= e) : a = b) (idp)
+            | false, e =>
+          \case <=-bool a b \as less,
+          idp \as id : <=-bool a b = less
+          \with {
+            | true, id =>
+              transport2 (\lam x y => x = y)
+                  (inv (link-a<=b-bool a b id)
+                  : gcd-helper a b (<=-bool-to-<= id) = gcd a b)
+                  (inv (link-b<a-bool b a (<=-to-<=-bool-f (a<=b&a!=b=>a'<=b (<=-bool-to-<= id) (=-bool-to-=-f e))))
+                  : gcd-helper a b (<=-bool-to-<= (<=-bool-inv (<=-to-<=-bool-f (a<=b&a!=b=>a'<=b (<=-bool-to-<= id) (=-bool-to-=-f e)))) : a Nat.<= b) = gcd b a)
+                  (gcd-step-helper2 a b a a
+                      (<=-bool-to-<= id)
+                      (<=-bool-to-<= (<=-bool-inv (<=-to-<=-bool-f (a<=b&a!=b=>a'<=b (<=-bool-to-<= id) (=-bool-to-=-f e)))) : a Nat.<= b)
+                      (=to<= idp)
+                      (=to<= idp))
+            | false, id =>
+              transport2 (\lam x y => x = y)
+                  (inv (link-b<a-bool a b id)
+                  : gcd-helper b a (<=-bool-to-<= (<=-bool-inv id)) = gcd a b)
+                  (inv (link-a<=b-bool b a (<=-bool-inv (<=-to-<=-bool-f (<=-bool-to-<=-f id))))
+                  : gcd-helper b a (<=-bool-to-<= (<=-bool-inv (<=-to-<=-bool-f (<=-bool-to-<=-f id)))) = gcd b a)
+                  (gcd-step-helper2 b a b b
+                      (<=-bool-to-<= (<=-bool-inv id))
+                      (<=-bool-to-<= (<=-bool-inv (<=-to-<=-bool-f (<=-bool-to-<=-f id))))
+                      (=to<= idp)
+                      (=to<= idp))
+          }
+          }
+
+        \func gcd-step-helper (a b n n2 : Nat)
+                              (p : a Nat.<= b)
+                              (q : a Nat.<= n)
+                              (p1 : Nat.mod b a Nat.<= a)
+                              (q1 : Nat.mod b a Nat.<= n2)
+                              (v : n2 Nat.<= n)
+          : gcd-helper-n a b n p q
+          = gcd-helper-n (Nat.mod b a) a n2 p1 q1
+          | 0, b, n, n2, p, q, p1, q1, v => {?}
+          | suc a', b, suc n, n2, p, q, p1, q1, v => \let a => suc a' \in
+            (gcd-step-helper2 (Nat.mod b a) a n (n2)
+                (NatLE.<=-transitive (a<=suc_a) (Nat.modProp b (first.leq_ok._1<=suc_a a')))
+                p1
+                (gcd-helper-n.p1 a b n q (first.leq_ok._1<=suc_a a'))
+                q1
+            : (\let a => suc a' \in
+              gcd-helper-n (Nat.mod b a) a n
+                  (NatLE.<=-transitive (a<=suc_a) (Nat.modProp b (first.leq_ok._1<=suc_a a')))
+                  (gcd-helper-n.p1 a b n q (first.leq_ok._1<=suc_a a')))
+              = gcd-helper-n (Nat.mod b (suc a')) (suc a') (n2) p1 q1)
+
+        \func gcd-step-helper2 (a b n1 n2 : Nat)
+                               (p1 : a Nat.<= b)
+                               (p2 : a Nat.<= b)
+                               (q1 : a Nat.<= n1)
+                               (q2 : a Nat.<= n2)
+          : gcd-helper-n a b n1 p1 q1
+          = gcd-helper-n a b n2 p2 q2
+          | 0, b, n1, n2, p1, p2, q1, q2 => idp
+          | suc a', b, suc n1, suc n2, p1, p2, q1, q2 =>
+            \let | a => suc a' \in
+              gcd-step-helper2 (Nat.mod b a) a n1 n2
+                  (NatLE.<=-transitive a<=suc_a (Nat.modProp b {a} (_1<=suc_a a')))
+                  (NatLE.<=-transitive a<=suc_a (Nat.modProp b {a} (_1<=suc_a a')))
+                  (<=-pred-i (NatLE.<=-transitive (Nat.modProp b {a} (_1<=suc_a a') : suc (Nat.mod b a) Nat.<= a) q1))
+                  (<=-pred-i (NatLE.<=-transitive (Nat.modProp b {a} (_1<=suc_a a') : suc (Nat.mod b a) Nat.<= a) q2))
+      }
+
+    \func mod=_Nat (a b : Nat) : Nat.mod a b = a -' (b * Nat.div a b) => moda_b=a-b*diva_b a b
+
+    \func -'as+negative (a b : Nat) (p : b Nat.<= a)
+      : Int.fromNat (a -' b) = Int.fromNat a + IntRing.negative (Int.fromNat b)
+      | 0, 0, zero<=_ => idp
+      | suc a, 0, zero<=_ => idp
+      | suc a, suc b, Nat.suc<=suc p => -'as+negative a b p *> (inv (l1 a b))
+      \where {
+        \func l1 (a b : Nat)
+          : Int.fromNat (suc a) + IntRing.negative (Int.fromNat (suc b))
+          = Int.fromNat a + IntRing.negative b
+          | 0, 0 => idp
+          | 0, suc b => idp
+          | suc a, 0 => idp
+          | suc a, suc b => idp
+      }
+
+    \func mod=_ (a b : Nat) :
+      (Int.fromNat (Nat.mod a b) = Int.fromNat a + negative (b IntRing.* Int.fromNat (Nat.div a b))) =>
+      (p1 a b)
+        *>
+      (-'as+negative a (b * Nat.div a b)
+          (NatLE.<=-transitive
+              (<=_0_+-right (Nat.mod a b))
+              (first.leq_ok.=to<= (Nat.divModProp a b) : b * Nat.div a b + Nat.mod a b Nat.<= a) : b * Nat.div a b Nat.<= a))
+      \where {
+        \func p1 (a b : Nat) : Int.fromNat (Nat.mod a b) = Int.fromNat (a -' (b * (Nat.div a b))) =>
+          pmap (\lam x => Int.fromNat x) (mod=_Nat a b)
+      }
+
+    \func extended-gcd-iter-proof {a b x1 y1 G : Int}
+      : a * (y1 + (negative (x1) * G)) + b * x1 = (b + negative (a) * G) * x1 + a * y1 =>
+      (pmap (\lam x => x + b * x1) (IntRing.ldistr a y1 (negative (x1) * G))
+      : a * (y1 + (negative (x1) * G)) + b * x1 = a * y1 + a * (negative (x1) * G) + b * x1) *>
+      (pmap (\lam x => a * y1 + x + b * x1)
+          (l2 a x1 G : a * (negative (x1) * G) = x1 * (negative (a) * G))
+      : a * y1 + a * (negative (x1) * G) + b * x1 = a * y1 + x1 * (negative (a) * G) + b * x1) *>
+      ((IntRing.+-assoc {a * y1} {x1 * (negative (a) * G)} {b * x1}) *>
+      pmap (\lam x => a * y1 + x)
+          ((pmap (\lam x => x1 * (negative (a) * G) + x) (*-comm)
+          : x1 * (negative (a) * G) + b * x1 = x1 * (negative (a) * G) + x1 * b) *>
+          (+-comm : x1 * (negative (a) * G) + x1 * b = x1 * b + x1 * (negative (a) * G)) *>
+          (inv (ldistr x1 (b) (negative (a) * G)) : x1 * b + x1 * (negative (a) * G) = x1 * (b + negative (a) * G))
+          : x1 * (negative (a) * G) + b * x1 = x1 * (b + negative (a) * G))
+      : a * y1 + x1 * (negative (a) * G) + b * x1 = a * y1 + x1 * (b + negative (a) * G))
+        *> (
+             +-comm
+             : a * y1 + x1 * (b + negative (a) * G) = x1 * (b + negative (a) * G) + a * y1
+           )
+             *> (
+                  pmap (\lam x => x + a * y1)
+                      (*-comm : x1 * (b + negative (a) * G) = (b + negative (a) * G) * x1)
+                  : x1 * (b + negative (a) * G) + a * y1 = (b + negative (a) * G) * x1 + a * y1
+                )
+      \where {
+        \lemma l2 (a b c : Int) : a * (negative (b) * c) = b * (negative (a) * c) =>
+          inv (
+            (pmap (b * ) (r a c)
+            : b * (negative a * c) = b * negative (a * c)) *>
+            (l b (a * c)
+            : b * negative (a * c) = negative (b * (a * c))) *>
+            (pmap (\lam x => negative x) (inv *-assoc)
+            : negative (b * (a * c)) = negative (b * a * c)) *>
+            (pmap (\lam x => negative (x * c)) (*-comm)
+            : negative (b * a * c) = negative (a * b * c)) *>
+            (pmap negative *-assoc
+            : negative (a * b * c) = negative (a * (b * c))) *>
+            (inv (l a (b * c))
+            : negative (a * (b * c)) = a * negative (b * c)) *>
+            (pmap (a *) (inv (r b c))
+            : a * negative (b * c) = a * (negative (b) * c)))
+          \where {
+            \func r (a b : Int) : (negative a) * b = negative (a * b) =>
+              *-comm *> (l b a) *> (pmap negative *-comm : negative (b * a) = negative (a * b))
+
+            \func l (a b : Int) : a * (negative b) = negative (a * b)
+              | pos n, pos n1 => idp
+              | pos n, neg n1 => idp
+              | neg (suc n'), pos n1 =>
+                \let | n => suc n' \in
+                  ((IntRing.neg*neg : (neg n) * (neg n1) = (pos (n * n1))) *>
+                  (pmap negative IntRing.neg*pos : negative (neg (n * n1)) = negative (neg n * pos n1))
+                  : (neg n) * (neg n1) = negative (neg n * pos n1))
+              | neg (suc n'), neg (suc n1') =>
+                \let | n => suc n'
+                     | n1 => suc n1' \in
+                  ((IntRing.neg*pos {n} {n1} : (neg n) * (pos n1) = (neg (n * n1))) *>
+                  (pmap negative (inv (IntRing.neg*neg {n} {n1}): pos (n * n1) = neg n * neg n1)
+                  : negative (pos (n * n1)) = negative (neg n * neg n1))
+                  : (neg n) * (pos n1) = negative (neg n * neg n1))
+          }
+      }
+  }

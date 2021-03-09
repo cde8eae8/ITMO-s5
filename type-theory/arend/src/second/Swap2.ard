@@ -1,0 +1,744 @@
+\import Arith.Nat
+\import Data.Bool
+\import Data.List
+\import Data.Or
+\import Function
+\import Function.Meta
+\import Logic
+\import Logic.Meta
+\import Paths
+\import Paths.Meta
+\import first.eq_ok
+\import first.leq_ok
+
+\data Maybe (A : \Type) | nothing | just A
+
+\data IdxOk {A : \Type} (v : List A) (idx : Nat)
+  | proof (p : suc idx Nat.<= length v)
+  \where {
+    \func open {A : \Type} {v : List A} {idx : Nat} (p : IdxOk v idx)
+      : suc idx Nat.<= length v
+      | {A}, {v}, {idx}, proof p => p
+  }
+
+\func changeList {A : \Type} {idx : Nat} {v w : List A} (v=w : v = w) :
+  IdxOk v idx = IdxOk w idx =>
+  (pmap (\lam x => IdxOk x idx) v=w : IdxOk v idx = IdxOk w idx)
+
+\func changeList2
+  {A : \Type} {idx : Nat} {v w : List A}
+  (v=w : length v = length w)
+  (p : IdxOk v idx)
+  : IdxOk w idx
+  | {A}, {idx}, {v}, {w}, v=w, proof p => proof (NatLE.<=-transitive p (=to<= v=w))
+
+-- (pmap (\lam x => IdxOk x idx) v=w : IdxOk v idx = IdxOk w idx)
+
+\data Ith {A : \Type} (v : List A) (idx : Nat)
+  | elem (IdxOk v idx) A
+  \where {
+    \func append {A : \Type} (v : List A) (a : A) (idx : Nat) (p : Ith v idx)
+      : Ith (a :: v) (suc idx)
+      | nil, a, idx, elem (proof i) a1 => contradiction {i}
+      | :: a v, a1, idx, elem (proof i) a2 => elem (proof (Nat.suc<=suc i)) a2
+
+    \func open {A : \Type} {v : List A} {idx : Nat} (p : Ith v idx)
+      : A
+      | {A}, {nil}, {idx}, elem (proof i) a => contradiction {i}
+      | {A}, {:: a v}, {idx}, elem i a1 => a1
+  }
+
+\func ith {A : \Type} (v : List A) (idx : Nat) (p : IdxOk v idx) : Ith v idx -- A
+  | nil, 0, proof p => contradiction {p}
+  | nil, suc idx, proof p => contradiction {p}
+  | :: a v, 0, p => elem p a
+  | :: a v, suc idx, proof p => Ith.append v a idx (ith v idx (proof (<=-pred-i p)))
+
+\func ith' {A : \Type} (v : List A) (idx : Nat) (p : IdxOk v idx) : A -- A
+  => Ith.open (ith v idx p)
+
+--\func v=w=>v[0]=w[0]
+--  {A : \Type} (v w : List A) (v=w : v = w) (p : Ith v 0) (q : Ith w 0)
+--  : Ith.open (p) = Ith.open (q) => pmap (\lam x => Ith.open x) v=w
+  -- pmap2 (\lam x y => ith x idx y) (v=w : v = w) (changeList v=w : IdxOk v idx = IdxOk w idx)
+
+-- a = n
+-- b = n
+
+-- swap(v, a, b)[n] =
+--    1. v[a] if n == b
+--    2. v[b] if n == a
+--    3. v[n] else
+
+-- \func swap {A : \Type} (v : List A) (a b : Nat) : List A
+-- \with {
+--   | nil, a, b => {?}
+--   | :: a v, a1, b => {?}
+-- }
+
+\func eq (a b : Nat) : Bool
+  | 0, 0 => true
+  | 0, suc b => false
+  | suc a, 0 => false
+  | suc a, suc b => eq a b
+
+\func swap-prop0 {A : \Type} (v : List A) (a b : Nat)
+                 (a<=length : IdxOk v a)
+                 (b<=length : IdxOk v b)
+                 (a<=length_swap_a : suc a Nat.<= length (swap v a b a<=length b<=length))
+                 (idx : Nat)
+                 (idx<=length : IdxOk v idx)
+  : ith (swap v a b a<=length b<=length) idx
+  = ith (swap v b a b<=length a<=length) idx =>
+  \case eq a idx \as ea, eq b idx \as eb, idp : eq a idx = ea, idp : eq b idx = eb \with {
+    | true, true, p, q =>
+      swap-inv2-a v a b a<=length b<=length a<=length_swap_a
+    -- (inv (swap-inv2 v b a b<=length a<=length idx idx<=length idx<=length_swap_b (uneq-f2 q) (uneq-f2 p)))
+    | true, false, p, q => {?}
+    | false, true, p, q =>
+      -- idx != a, idx == b
+      -- swap v a b = v[a]
+      -- swap v b a = v[a]
+      swap-inv2-a!=b_b v a b a<=length b<=length idx {?} {?}
+    -- swap-inv1 v a b a<=length b<=length idx idx<=length idx<=length_swap_a (uneq-f2 p) (uneq-f2 q) *>
+    -- swap-inv2-a v a b a<=length b<=length a<=length_swap_a
+    -- (inv (swap-inv2-a))
+
+    | false, false, p, q =>
+      swap-inv1 v a b a<=length b<=length idx idx<=length idx<=length_swap_a (uneq-f2 p) (uneq-f2 q) *>
+      (inv (swap-inv1 v b a b<=length a<=length idx idx<=length idx<=length_swap_b (uneq-f2 q) (uneq-f2 p)))
+  }
+
+-- swap-helper v a b a<=length b<=length (NatLE.<=-transitive b<=length (=to<= (replace-same-length v a (ith v b b<=length) a<=length)))
+
+\func swap {A : \Type} (v : List A) (a b : Nat)
+           (a<=length : IdxOk v a)
+           (b<=length : IdxOk v b)
+  : List A =>
+  swap-helper v a b a<=length b<=length
+      -- (NatLE.<=-transitive (IdxOk.open b<=length)
+      --    (=to<= (replace-same-length v a (ith v b b<=length) a<=length)))
+
+\func swap-helper {A : \Type} (v : List A) (a b : Nat) -- (res : List A)
+                  (a<=length : IdxOk v a)
+                  (b<=length : IdxOk v b)
+                  -- (b<=length_replaced : suc b Nat.<= length (replace v a (ith v b b<=length) a<=length))
+  : List A =>
+  \let | v[b] => Ith.open (ith v b b<=length)
+       | v[a] => Ith.open (ith v a a<=length)
+  \in
+    replace
+        (replace v a v[b] a<=length) b v[a]
+        (changeList2 (replace-same-length a<=length) b<=length)
+
+-- \func swap-helper-any-<= {A : \Type} (v : List A) (a b : Nat) -- (res : List A)
+--                          (a<=length : suc a Nat.<= length v)
+--                          (b<=length : suc b Nat.<= length v)
+--                          (b<=length_replaced-1 : suc b Nat.<= length (replace v a (ith v b b<=length) a<=length))
+--                          (b<=length_replaced-2 : suc b Nat.<= length (replace v a (ith v b b<=length) a<=length))
+--   : swap-helper v a b a<=length b<=length b<=length_replaced-1
+--   = swap-helper v a b a<=length b<=length b<=length_replaced-2 =>
+--   \let | v[b] => ith v b b<=length
+--        | v[a] => ith v a a<=length
+--   \in
+--     replace-any-<= (replace v a v[b] a<=length) b v[a] b<=length_replaced-1 b<=length_replaced-2
+
+-- \func replace-any-<=
+--   {A : \Type} (v : List A)
+--   (idx : Nat) (val : A)
+--   (p : suc idx Nat.<= length v)
+--   (q : suc idx Nat.<= length v)
+--   : replace v idx val p = replace v idx val q
+--   | nil, 0, val, (), q
+--   | :: a v, 0, val, Nat.suc<=suc p, Nat.suc<=suc q => idp
+--   | :: a v, suc idx, val, Nat.suc<=suc p, Nat.suc<=suc q => pmap (a ::) (replace-any-<= v idx val p q)
+
+-- \func replace-any-<=2
+--   {A : \Type} (v : List A)
+--   (idx : Nat) (val : A)
+--   (p : suc idx Nat.<= length v)
+--   (q : suc idx Nat.<= length v)
+--   : replace v idx val p = replace v idx val q =>
+--   pmap (\lam x => replace v idx val x) (Path.inProp p q)
+
+-- idx != a, idx != b => (swap v a b)[idx] = v[idx]
+
+--\func swap-inv1
+--  {A : \Type} (v : List A) (a b : Nat)
+--  (a<=length : IdxOk v a)
+--  (b<=length : IdxOk v b)
+--  (idx : Nat)
+--  (idx<=length : IdxOk v idx)
+--  -- (idx<=length_swap : suc idx Nat.<= length (swap v a b a<=length b<=length))
+--  (idx!=a : Not (idx = a))
+--  (idx!=b : Not (idx = b))
+--  : ith (swap v a b a<=length b<=length) idx = ith v idx =>
+--  \let | v[b] => ith v b b<=length
+--       | v[a] => ith v a a<=length
+--  \in
+--    (replace-inv2
+--        (replace v a v[b] a<=length)
+--        b v[a] (replace-same-length a<=length)
+--        idx (replace-same-length a<=length) idx!=b
+--        -- idx<=length_swap
+--    : ith
+--        (replace (replace v a (Ith.open (ith v b b<=length)) a<=length) b (ith v a a<=length)
+--            (replace-same-length a<=length))
+--        idx
+--        -- idx<=length_swap
+--      = ith
+--            (replace v a (Ith.open (ith v b b<=length)) a<=length)
+--            idx
+--            (NatLE.<=-transitive (idx<=length) (=to<= (replace-same-length a<=length))))
+--      *> (replace-inv2 v a v[b] a<=length idx idx<=length idx!=a
+--        (replace-same-length a<=length)
+--    : ith
+--        (replace v a (ith v b b<=length) a<=length)
+--        idx
+--        (replace-same-length a<=length)
+--      = ith
+--            v
+--            idx
+--            idx<=length)
+
+\func replace-prop1
+  {A : \Type} (v : List A) (a : Nat)
+  (a<=length : suc a Nat.<= length v)
+  : replace v a (ith v a a<=length) a<=length = v
+  | nil, 0, ()
+  | :: a v, 0, Nat.suc<=suc a<=length => idp
+  | :: a v, suc a1, Nat.suc<=suc a<=length => pmap (:: a) (replace-prop1 v a1 a<=length)
+
+\func replace-prop1-elements
+  {A : \Type} (v : List A) (a : Nat)
+  (a<=length : IdxOk v a) -- suc a Nat.<= length v)
+  (idx : Nat)
+  (idx<=length : IdxOk v idx) -- suc idx Nat.<= length v)
+  -- (idx<=length_replace : suc idx Nat.<= length (replace v a (ith v a a<=length) a<=length))
+  : ith (replace v a (ith' v a a<=length) a<=length) idx) idx = ith v idx
+  | nil, 0, (), idx, idx<=length, idx<=length_replace
+  | :: a v, 0, Nat.suc<=suc a<=length, idx, idx<=length, idx<=length_replace => ith-any-<= (a :: v) idx idx<=length_replace idx<=length
+  | :: a v, suc a1, Nat.suc<=suc a<=length, suc idx, Nat.suc<=suc idx<=length, Nat.suc<=suc idx<=length_replace =>
+    replace-prop1-elements v a1 a<=length idx idx<=length idx<=length_replace
+  | :: a v, suc a1, Nat.suc<=suc a<=length, 0, idx<=length, idx<=length_replace =>
+    (pmap (a ::) (replace-prop1 v a1 a<=length))
+
+--  | nil, 0, ()
+--  | :: a v, 0, Nat.suc<=suc a<=length => idp
+--  | :: a v, suc a1, Nat.suc<=suc a<=length => pmap (:: a) (replace-prop1 v a1 a<=length)
+
+-- (swap v a a) = v
+
+--\func swap-prop1
+--  {A : \Type} (v : List A) (a : Nat)
+--  (a<=length : suc a Nat.<= length v)
+--  (a<=length_swap : suc a Nat.<= length (swap v a a a<=length a<=length))
+--  : (swap v a a a<=length a<=length) = v =>
+--  \let | v[a] => ith v a a<=length
+--       | <=-proof => (replace-same-length-<= v[a] a<=length a<=length)
+--  \in
+--    (pmap
+--        (\lam SUBST => replace (replace v a v[a] a<=length) a SUBST <=-proof)
+--        (replace-proplocal v a a<=length <=-proof)
+--    : replace (replace v a v[a] a<=length) a
+--        (ith v a a<=length)
+--        <=-proof
+--      = replace (replace v a v[a] a<=length) a
+--            (ith (replace v a (ith v a a<=length) a<=length) a <=-proof)
+--            <=-proof) *>
+--    (replace-prop1 (replace v a v[a] a<=length) a <=-proof
+--    : replace (replace v a v[a] a<=length) a (ith (replace v a v[a] a<=length) a <=-proof) <=-proof
+--      = replace v a v[a] a<=length) *>
+--    (replace-prop1 v a a<=length : replace v a v[a] a<=length = v)
+--  \where {
+--    \func replace-proplocal
+--      {A : \Type} (v : List A) (a : Nat)
+--      (a<=length : suc a Nat.<= length v)
+--      (a<=length_replace : suc a Nat.<= length (replace v a (ith v a a<=length) a<=length))
+--      : (ith v a a<=length) = (ith (replace v a (ith v a a<=length) a<=length) a a<=length_replace)
+--      | nil, 0, (), a<=length_replace
+--      | :: a v, 0, Nat.suc<=suc a<=length, Nat.suc<=suc a<=length_replace => idp
+--      | :: a v, suc a1, Nat.suc<=suc a<=length, Nat.suc<=suc a<=length_replace => replace-proplocal v a1 a<=length a<=length_replace
+--  }
+--
+---- (swap v a a)[idx] = v[idx]
+--
+--\func swap-prop1-elements
+--  {A : \Type} (v : List A) (a : Nat)
+--  (a<=length : suc a Nat.<= length v)
+--  (a<=length_swap : suc a Nat.<= length (swap v a a a<=length a<=length))
+--  --  (idx : Nat)
+--  --  (idx<=length : suc idx Nat.<= length v)
+--  --  (idx<=length_swap : suc idx Nat.<= length (swap v a a a<=length a<=length))
+--  : ith (swap v a a a<=length a<=length) a a<=length_swap = ith v a a<=length =>
+--  \let | v[a] => ith v a a<=length
+--       | <=-proof => (replace-same-length-<= v[a] a<=length a<=length)
+--  \in
+--    (pmap
+--        (\lam SUBST => replace (replace v a v[a] a<=length) a SUBST <=-proof)
+--        (replace-proplocal v a a<=length <=-proof)
+--    : ith (replace (replace v a v[a] a<=length) a
+--        (ith v a a<=length)
+--        <=-proof) a a<=length_swap
+--      = ith (replace (replace v a v[a] a<=length) a
+--        (ith (replace v a (ith v a a<=length) a<=length) a <=-proof)
+--        <=-proof) a a<=length_swap) *>
+--    (replace-prop1 (replace v a v[a] a<=length) a <=-proof
+--    : ith (replace (replace v a v[a] a<=length) a (ith (replace v a v[a] a<=length) a <=-proof) <=-proof)
+--      = ith (replace v a v[a] a<=length) a a<=length) *>
+--    (replace-prop1 v a a<=length
+--    : ith (replace v a v[a] a<=length) a a<=length = ith v a a a<=length)
+--  \where {
+--    \func replace-proplocal
+--      {A : \Type} (v : List A) (a : Nat)
+--      (a<=length : suc a Nat.<= length v)
+--      (a<=length_replace : suc a Nat.<= length (replace v a (ith v a a<=length) a<=length))
+--      : (ith v a a<=length) = (ith (replace v a (ith v a a<=length) a<=length) a a<=length_replace)
+--      | nil, 0, (), a<=length_replace
+--      | :: a v, 0, Nat.suc<=suc a<=length, Nat.suc<=suc a<=length_replace => idp
+--      | :: a v, suc a1, Nat.suc<=suc a<=length, Nat.suc<=suc a<=length_replace => replace-proplocal v a1 a<=length a<=length_replace
+--  }
+--
+--\func swap-inv2-b
+--  {A : \Type} (v : List A) (a b : Nat)
+--  (a<=length : suc a Nat.<= length v)
+--  (b<=length : suc b Nat.<= length v)
+--  (b<=length_swap : suc b Nat.<= length (swap v a b a<=length b<=length))
+--  : ith (swap v a b a<=length b<=length) b b<=length_swap = ith v a a<=length => {?}
+--
+--\func uneq {a b : Nat} (p : eq a b = true) : a = b
+--  | {0}, {0}, p => idp
+--  | {suc a}, {suc b}, p => pmap suc (uneq {a} {b} p)
+--
+--\func uneq-f {a b : Nat} (p : eq a b = false) (a=b : a = b) : Empty
+--  | {0}, {suc b}, p, ()
+--  | {suc a}, {0}, p, ()
+--  | {suc a}, {suc b}, p, a=b => uneq-f {a} {b} p (a'=b'=>a=b a=b)
+--
+--\func uneq-f2 {a b : Nat} (p : eq a b = false) (a=b : b = a) : Empty =>
+--  (uneq-f p) (inv a=b)
+--
+--\func swap-inv2-a
+--  {A : \Type} (v : List A) (a b : Nat)
+--  (a<=length : suc a Nat.<= length v)
+--  (b<=length : suc b Nat.<= length v)
+--  (a<=length_swap : suc a Nat.<= length (swap v a b a<=length b<=length))
+--  : ith (swap v a b a<=length b<=length) a a<=length_swap = ith v b b<=length =>
+--  \case eq a b \as e, idp : e = eq a b \with {
+--    | true, p =>
+--      (l1 v a b a<=length b<=length (uneq (inv p))
+--      : ith (swap v a b a<=length b<=length) a {?} = ith (swap v a a a<=length a<=length) a {?}) *>
+--      (swap-inv2-a=b v a a<=length {?}
+--      : ith (swap v a a a<=length a<=length) a {?} = ith v a a<=length) *>
+--      (l0 v a b a<=length b<=length p : ith v a a<=length = ith v b b<=length)
+--    | false, p => swap-inv2-a!=b_a v a b a<=length b<=length a (uneq-f (inv p)) a<=length_swap
+--  }
+--  \where {
+--    \func l0
+--      {A : \Type} (v : List A) (a b : Nat)
+--      (a<=length : suc a Nat.<= length v)
+--      (b<=length : suc b Nat.<= length v)
+--      (a=b : a = b)
+--      : ith v a a<=length = ith v b b<=length
+--      | nil, 0, 0, (), b<=length, a=b
+--      | nil, suc a, 0, (), b<=length, a=b
+--      | :: a v, 0, 0, Nat.suc<=suc a<=length, Nat.suc<=suc b<=length, a=b => idp
+--      | :: a v, 0, suc b, Nat.suc<=suc a<=length, Nat.suc<=suc b<=length, ()
+--      | :: a v, suc a1, 0, Nat.suc<=suc a<=length, Nat.suc<=suc b<=length, ()
+--      | :: a v, suc a1, suc b, Nat.suc<=suc a<=length, Nat.suc<=suc b<=length, a=b =>
+--        l0 v a1 b a<=length b<=length (a'=b'=>a=b a=b)
+--
+--    \func l1
+--      {A : \Type} (v : List A) (a b : Nat)
+--      (a<=length : suc a Nat.<= length v)
+--      (b<=length : suc b Nat.<= length v)
+--      (a=b : a = b)
+--      : swap v a b a<=length b<=length = swap v a a a<=length a<=length
+--      | nil, 0, 0, (), b<=length, a=b
+--      | nil, suc a, 0, (), b<=length, a=b
+--      | :: a v, 0, 0, Nat.suc<=suc a<=length, Nat.suc<=suc b<=length, a=b => idp
+--      | :: a v, 0, suc b, Nat.suc<=suc a<=length, Nat.suc<=suc b<=length, ()
+--      | :: a v, suc a1, 0, Nat.suc<=suc a<=length, Nat.suc<=suc b<=length, ()
+--      | :: a v, suc a1, suc b, Nat.suc<=suc a<=length, Nat.suc<=suc b<=length, a=b =>
+--        l1 v a1 b a<=length b<=length (a'=b'=>a=b a=b)
+--  }
+--
+--\func swap-inv2-a=b
+--  {A : \Type} (v : List A) (a : Nat)
+--  (a<=length : suc a Nat.<= length v)
+--  (a<=length_swap : suc a Nat.<= length (swap v a a a<=length a<=length))
+--  : ith (swap v a a a<=length a<=length) a a<=length_swap = ith v a a<=length =>
+--  \let
+--    | v[a] => ith v a a<=length
+--  \in
+--    (replace-inv
+--        (replace v a v[a] a<=length)
+--        a v[a] (replace-same-length-<= v[a] a<=length a<=length)
+--        a (replace-same-length-<= v[a] a<=length a<=length) idp -- a!=b
+--        a<=length_swap)
+--
+--\func swap-inv2-a=b-ext
+--  {A : \Type} (v : List A) (a b : Nat)
+--  (a<=length : suc a Nat.<= length v)
+--  (b<=length : suc b Nat.<= length v)
+--  (a<=length_swap : suc a Nat.<= length (swap v a b a<=length b<=length))
+--  (b<=length_swap : suc b Nat.<= length (swap v a b a<=length b<=length))
+--  : ith (swap v a b a<=length b<=length) a a<=length_swap = ith v a a<=length =>
+--  \let
+--    | v[a] => ith v a a<=length
+--  \in
+--    (replace-inv
+--        (replace v a v[a] a<=length)
+--        a v[a] (replace-same-length-<= v[a] a<=length a<=length)
+--        a (replace-same-length-<= v[a] a<=length a<=length) idp -- a!=b
+--        a<=length_swap)
+--
+--\func swap-inv2-a!=b_b
+--  {A : \Type} (v : List A) (a b : Nat)
+--  (a<=length : suc a Nat.<= length v)
+--  (b<=length : suc b Nat.<= length v)
+--  (idx : Nat)
+--  (a!=b : Not (a = b))
+--  (b<=length_swap : suc b Nat.<= length (swap v a b a<=length b<=length))
+--  : ith (swap v a b a<=length b<=length) b b<=length_swap = ith v a a<=length => {?}
+--
+--\func swap-inv2-a!=b_a
+--  {A : \Type} (v : List A) (a b : Nat)
+--  (a<=length : suc a Nat.<= length v)
+--  (b<=length : suc b Nat.<= length v)
+--  (idx : Nat)
+--  (a!=b : Not (a = b))
+--  (a<=length_swap : suc a Nat.<= length (swap v a b a<=length b<=length))
+--  : ith (swap v a b a<=length b<=length) a a<=length_swap = ith v b b<=length =>
+--  \let | v[b] => ith v b b<=length
+--       | v[a] => ith v a a<=length
+--  \in
+--    (replace-inv2
+--        (replace v a v[b] a<=length)
+--        b v[a] (replace-same-length-<= v[b] b<=length a<=length)
+--        a (replace-same-length-<= v[b] a<=length a<=length) a!=b
+--        a<=length_swap
+--    : ith
+--        (replace (replace v a (ith v b b<=length) a<=length) b (ith v a a<=length)
+--            (replace-same-length-<= v[b] b<=length a<=length))
+--        a
+--        a<=length_swap
+--      = ith
+--            (replace v a (ith v b b<=length) a<=length)
+--            a
+--            (NatLE.<=-transitive (a<=length) (=to<= (replace-same-length- v[b] a<=length)))) *>
+--    (replace-inv v a v[b] a<=length a a<=length idp (replace-same-length-<= v[b] a<=length a<=length)
+--    : ith
+--        (replace v a (ith v b b<=length) a<=length)
+--        a
+--        (replace-same-length-<= v[b] a<=length a<=length)
+--      = ith
+--            v
+--            b
+--            b<=length
+--    )
+
+--\func swap-inv2-a!=b_a-new
+--  {A : \Type} (v : List A) (a b : Nat)
+--  (a<=length : suc a Nat.<= length v)
+--  (b<=length : suc b Nat.<= length v)
+--  (idx : Nat)
+--  (idx=a : idx = a)
+--  (idx<=length : suc idx Nat.<= length v)
+--  (a!=b : Not (a = b))
+--  (idx<=length_swap : suc idx Nat.<= length (swap v a b a<=length b<=length))
+--  : ith (swap v a b a<=length b<=length) idx idx<=length_swap = ith v b b<=length =>
+--  \let | v[b] => ith v b b<=length
+--       | v[a] => ith v a a<=length
+--       | v2 => (replace v a v[b] a<=length)
+--       | b<=length2 => (replace-same-length-<= v[b] b<=length a<=length : suc b Nat.<= length v2)
+--       | a<=length2 => (replace-same-length-<= v[b] a<=length a<=length : suc a Nat.<= length v2)
+--       | idx<=length2 => (replace-same-length-<= v[b] idx<=length a<=length : suc idx Nat.<= length v2)
+--    \in
+--    (transport2 (\lam x y => ith (replace v2 b v[a] x) idx y = ith v2 idx (replace-same-length-<= {A} {v} {idx} {a} v[b] idx<=length a<=length))
+--      ({?} : (replace-same-length-<= v[b] b<=length a<=length) = b<=length2)
+--      ({?} : (replace-same-length-<= v[a] idx<=length2 b<=length2) = idx<=length_swap)
+--    (replace-inv2 v2 b v[a] b<=length2 idx idx<=length2 {?} (replace-same-length-<= v[a] idx<=length2 b<=length2))
+--    : ith
+--        (replace (replace v a v[b] a<=length) b v[a] b<=length2)
+--        idx
+--        idx<=length_swap
+--    = ith
+--          (replace v a v[b] a<=length)
+--          idx
+--          (replace-same-length-<= v[b] idx<=length a<=length)
+--    ) *>
+--    (replace-inv v a v[b] a<=length idx idx<=length idx=a (replace-same-length-<= v[b] idx<=length a<=length)
+--    : ith
+--        (replace v a v[b] a<=length)
+--        idx
+--        (replace-same-length-<= v[b] idx<=length a<=length)
+--    = ith
+--          v
+--          b
+--          b<=length
+--    )
+
+\func replace {A : \Type} (v : List A) (idx : Nat) (val : A) (p : IdxOk v idx) : List A
+  | nil, 0, val, proof ()
+  | :: head tail, 0, val, proof (Nat.suc<=suc p) => :: val tail
+  | :: head tail, suc idx, val, proof (Nat.suc<=suc p) => :: head (replace tail idx val (proof p))
+  | nil, suc idx, val, proof p => contradiction {p}
+
+--\func ith {A : \Type} (v : List A) (idx : Nat) (p : suc idx Nat.<= length v) : A
+--  | nil, 0, ()
+--  | :: a v, 0, Nat.suc<=suc p => a
+--  | :: a v, suc idx, Nat.suc<=suc p => ith v idx p
+
+\func length {A : \Type} (v : List A) : Nat
+  | nil => 0
+  | :: _ v => suc (length v)
+
+--\func replace-same-length-<=
+--  {A : \Type}
+--  {v : List A}
+--  {a idx : Nat}
+--  (val : A)
+--  (idx : Nat) (val : A) (p : IdxOk v idx)
+--  : length v = length (replace v idx val p) =>
+--  NatLE.<=-transitive a<=length (=to<= (replace-same-length- val idx<=length))
+
+-- \func replace-same-length-
+--   {A : \Type}
+--   {v : List A}
+--   {idx : Nat}
+--   (val : A)
+--   (idx<=length : suc idx Nat.<= length v)
+--   : (length v = length (replace v idx val idx<=length))
+--   | {A}, {nil}, {0}, val, ()
+--   | {A}, {:: a v}, {0}, val, Nat.suc<=suc idx<=length => idp
+--   | {A}, {:: a v}, {suc idx}, val, Nat.suc<=suc idx<=length =>
+--     pmap suc (replace-same-length- val idx<=length)
+
+\func replace-same-length
+  {A : \Type}
+  {v : List A}
+  {idx : Nat}
+  {val : A}
+  (idx<=length : IdxOk v idx) -- suc idx Nat.<= length v)
+  : (length v = length (replace v idx val idx<=length))
+  | {A}, {nil}, {0}, {val}, proof ()
+  | {A}, {:: a v}, {0}, {val}, proof (Nat.suc<=suc idx<=length) => idp
+  | {A}, {:: a v}, {suc idx}, {val}, proof (Nat.suc<=suc idx<=length) =>
+    pmap suc (replace-same-length (proof idx<=length))
+  | {A}, {nil}, {suc idx}, {val}, proof idx<=length => contradiction {idx<=length}
+
+\func ith-append-head
+  {A : \Type}
+  (tail : List A)
+  (idx : Nat)
+  (p : suc idx Nat.<= length tail)
+  (head : A)
+  : ith tail idx p = ith (head :: tail) (suc idx) (Nat.suc<=suc p)
+  | nil, 0, (), head
+  | :: a v, 0, p, head => idp
+  | :: a v, suc idx, Nat.suc<=suc p, head => ith-append-head v idx p head
+
+\func replace-inv
+  {A : \Type}
+  (v : List A)
+  (idx : Nat)
+  (val : A)
+  (idx<=length : suc idx Nat.<= length v)
+  (i : Nat)
+  (i<=length : suc i Nat.<= length v)
+  (i=idx : i = idx)
+  (i<=length_replace : suc i Nat.<= length (replace v idx val idx<=length))
+  -- : ith (replace v idx val idx<=length) i (rewriteF (replace-same-length v idx val idx<=length) i<=length) = val
+  : ith (replace v idx val idx<=length) i i<=length_replace = val
+  | nil, 0, val, (), i, i<=length, i=idx, i<=length_replace
+  | :: a v, 0, val, Nat.suc<=suc idx<=length, 0, Nat.suc<=suc i<=length, i=idx, Nat.suc<=suc i<=length_replace =>
+    idp
+  | :: a v, 0, val, Nat.suc<=suc idx<=length, suc i, Nat.suc<=suc i<=length, (), i<=length_replace
+  | :: a v, suc idx, val, Nat.suc<=suc idx<=length, 0, Nat.suc<=suc i<=length, (), i<=length_replace
+  | :: a v, suc idx, val, Nat.suc<=suc idx<=length, suc i, Nat.suc<=suc i<=length, i=idx, Nat.suc<=suc i<=length_replace =>
+    replace-inv v idx val idx<=length i i<=length (a'=b'=>a=b i=idx) i<=length_replace
+
+\func replace-inv2
+  {A : \Type}
+  (v : List A)
+  (idx : Nat)
+  (val : A)
+  (idx<=length : suc idx Nat.<= length v)
+  (i : Nat)
+  (i<=length : suc i Nat.<= length v)
+  (i!=idx : Not (i = idx))
+  (i<=length_replace : suc i Nat.<= length (replace v idx val idx<=length))
+  : ith (replace v idx val idx<=length) i i<=length_replace = ith v i i<=length
+  | nil, 0, val, (), i, i<=length, i!=idx, i<=length_replace
+  | :: a v, 0, val, Nat.suc<=suc idx<=length, 0, Nat.suc<=suc i<=length, i!=idx, Nat.suc<=suc i<=length_replace =>
+    absurd (i!=idx idp)
+  | :: a v, 0, val, Nat.suc<=suc idx<=length, suc i, Nat.suc<=suc i<=length, i!=idx, Nat.suc<=suc i<=length_replace =>
+    inv (ith-any-<= v i i<=length i<=length_replace)
+  | :: a v, suc idx, val, Nat.suc<=suc idx<=length, 0, Nat.suc<=suc i<=length, i!=idx, Nat.suc<=suc i<=length_replace => idp
+  | :: a v, suc idx, val, Nat.suc<=suc idx<=length, suc i, Nat.suc<=suc i<=length, i!=idx, Nat.suc<=suc i<=length_replace =>
+    -- {?}
+    replace-inv2 v idx val idx<=length i i<=length (a'!=b'=>a!=b i!=idx : Not (i = idx)) i<=length_replace
+
+-- \func ith-any-<=
+--   {A : \Type}
+--   (v : List A)
+--   (idx : Nat)
+--   (idx<=length1 : suc idx Nat.<= length v)
+--   (idx<=length2 : suc idx Nat.<= length v)
+--   : ith v idx idx<=length1 = ith v idx idx<=length2
+--   | nil, 0, (), idx<=length2
+--   | :: a v, 0, Nat.suc<=suc idx<=length1, Nat.suc<=suc idx<=length2 => idp
+--   | :: a v, suc idx, Nat.suc<=suc idx<=length1, Nat.suc<=suc idx<=length2 =>
+--     ith-any-<= v idx idx<=length1 idx<=length2
+
+--\func ith-any-<=-2
+--  {A : \Type}
+--  (v w : List A)
+--  (idx : Nat)
+--  (idx<=length1 : suc idx Nat.<= length v)
+--  (idx<=length2 : suc idx Nat.<= length w)
+--  (v=w : v = w)
+--  : ith v idx idx<=length1 = ith v idx idx<=length2
+--
+--\func ith-any-<=-ext
+--  {A : \Type}
+--  (v : List A)
+--  (w : List A)
+--  (idx : Nat)
+--  (idx<=length1 : suc idx Nat.<= length v)
+--  (idx<=length2 : suc idx Nat.<= length w)
+--  (v=w : v = w)
+--  : ith v idx idx<=length1 = ith w idx idx<=length2
+--  | nil, nil, 0, (), idx<=length2, v=w
+--  | nil, :: a w, 0, (), idx<=length2, v=w
+--  | :: a v, nil, 0, Nat.suc<=suc idx<=length1, (), v=w
+--  | :: a v, nil, suc idx, Nat.suc<=suc idx<=length1, (), v=w
+--  | :: a v, :: a1 w, 0, Nat.suc<=suc idx<=length1, Nat.suc<=suc idx<=length2, v=w => pmap (\lam l => ith l 0 {?}) v=w
+--  | :: a v, :: a1 w, suc idx, Nat.suc<=suc idx<=length1, Nat.suc<=suc idx<=length2, v=w =>
+--    ith-any-<=-ext v w idx idx<=length1 idx<=length2 {?} -- v=w=>tail_v=tail_w
+--  \where {
+--    \func v=w=>length_v=length_w
+--      {A : \Type}
+--      (v : List A)
+--      (w : List A)
+--      (v=w : v = w) : length v = length w => pmap length (v=w)
+--
+--    \func v=w=>tail_v=tail_w
+--      {A : \Type}
+--      (v : List A)
+--      (w : List A)
+--      (nonempty_v : 1 Nat.<= length v)
+--      (nonempty_w : 1 Nat.<= length w)
+--      (v=w : v = w)
+--      : tail v nonempty_v = tail w nonempty_w
+--      | nil, nil, (), nonempty_w, v=w
+--      | :: a v, nil, Nat.suc<=suc nonempty_v, (), v=w
+--      | :: a v, :: a1 w, Nat.suc<=suc nonempty_v, Nat.suc<=suc nonempty_w, v=w =>
+--
+--    \func v=w=>head_v=head_w
+--      {A : \Type}
+--      (v : List A)
+--      (w : List A)
+--      (nonempty_v : 1 Nat.<= length v)
+--      (nonempty_w : 1 Nat.<= length w)
+--      (v=w : v = w)
+--      : head v nonempty_v = head w nonempty_w
+--      | nil, nil, (), nonempty_w, v=w
+--      | :: a v, nil, Nat.suc<=suc nonempty_v, (), v=w
+--      | :: a v, :: a1 w, Nat.suc<=suc nonempty_v, Nat.suc<=suc nonempty_w, v=w =>
+--
+--    -- pmap2 (\lam l (p<= : 1 Nat.<= length l) => head l p<=) v=w ({?} : 1 Nat.<= length v = 1 Nat.<= length w) -- (f0 (v=w=>length_v=length_w v w {?}))
+--
+--    \func v=w=>head_v=head_w-simple
+--      (a b : Nat)
+--      (v=w : (a :: nil) = (b :: nil))
+--      : a = b
+--      | 0, 0, v=w => idp
+--      -- | suc a, suc b, v=w => pmap suc (v=w=>head_v=head_w-simple a b {?}) -- v=w
+--      | suc a, suc b, v=w => pmap suc (v=w=>head_v=head_w-simple a b
+--          (pmap (\lam x => x :: nil)
+--              (pmap
+--                  (\lam x => head_ x (x :: nil) nil idp)
+--                  (v=w : (suc a :: nil = suc b :: nil)) : a = b)))
+--      \where {
+--        \func isJust (a : Maybe Nat) : Bool
+--          | nothing => false
+--          | just a => true
+--
+--        \func unjust (a : Maybe Nat) (p : isJust a = true) : Nat
+--          | just a, p => a
+--
+--        \func l-1 (a b : Maybe Nat)
+--                  (q : isJust a = true)
+--                  (p : isJust b = true)
+--                  (a=b : a = b) : unjust a q = unjust b p => pmap (\lam x => ) a=b ({?} : q = p)
+--
+--        \func l1 (a b : Nat) (p : just a = just b) : a = b
+--          | 0, 0, p => idp
+--          | suc a, suc b, p => l1 a b p
+--
+--        \func l2 (a : Nat) (v : Maybe Nat) (p : just a = v) : Nat
+--          | 0, 0, p => idp
+--          | suc a, suc b, p => l1 a b p
+--
+--        \func head_
+--          {A : \Type}
+--          (a : A)
+--          (v t : List A)
+--          (p : v = (a :: t))
+--          : A
+--          | a, nil, nil, ()
+--          | a, :: a1 v, t, p => a
+--      }
+--
+--    \func head_v!=head_w=>v!=w
+--      {A : \Type}
+--      (v : List A)
+--      (w : List A)
+--      (nonempty_v : 1 Nat.<= length v)
+--      (nonempty_w : 1 Nat.<= length w)
+--      (hv!=hw : Not (head v nonempty_v = head w nonempty_w))
+--      (tail= : tail v nonempty_v = tail w nonempty_w)
+--      (v=w : v = w)
+--      : Empty => tail&head=>v=w v w nonempty_v nonempty_w
+--      \where {
+--        \func tail&head=>v=w
+--          {A : \Type}
+--          (v : List A)
+--          (w : List A)
+--          (nonempty_v : 1 Nat.<= length v)
+--          (nonempty_w : 1 Nat.<= length w)
+--          (head= : head v nonempty_v = head w nonempty_w)
+--          (tail= : tail v nonempty_v = tail w nonempty_w)
+--          : v = w
+--          | nil, nil, (), nonempty_w, head=, tail=
+--          | :: a v, nil, Nat.suc<=suc nonempty_v, (), head=, tail=
+--          | :: a v, :: a1 w, Nat.suc<=suc nonempty_v, Nat.suc<=suc nonempty_w, head=, tail= =>
+--            pmap2 (::) head= tail=
+--      }
+--
+--    \func my-pmap
+--      {A B : \Type}
+--      (f : A -> B)
+--      {a a' : A} (p : Path {-a = a'-}) : f a = f a' =>
+--      path (\lam i => f (p @ i))
+--
+--    \func tail
+--      {A : \Type}
+--      (v : List A)
+--      (nonempty_v : 1 Nat.<= length v)
+--      : List A
+--      | :: a v, Nat.suc<=suc nonempty_v => v
+--
+--    \func head
+--      {A : \Type}
+--      (v : List A)
+--      (nonempty_v : 1 Nat.<= length v)
+--      : A
+--      | :: a v, Nat.suc<=suc nonempty_v => a
+--  }
+--
+--\func f0 {a b c d : Nat} (b=c : b = c)
+--  : (a Nat.<= b) = (a Nat.<= c) => pmap (\lam x => a Nat.<= x) b=c
+--

@@ -1,0 +1,19 @@
+\import Algebra.Group
+\import Algebra.Monoid
+\import Algebra.Ring
+\import Arith.Int
+\import Arith.Nat
+\import Data.Bool
+\import first.eq_ok
+\import HLevel
+\import Less (&&, Unit)
+\import Logic
+\import Logic.Meta
+\open Nat
+\import Order.LinearOrder
+\import first.leq_ok
+\import Paths
+\import Paths.Meta
+\import first.gcd_ok
+\import first.mod_n_ok (div_a*n_a=n, div_n*a_a=n, mod_a*n_a=0)
+

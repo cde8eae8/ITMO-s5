@@ -1,0 +1,125 @@
+\import Arith.Nat
+\import Logic
+\import Logic.Meta
+\import Paths
+\import Paths.Meta
+\open Nat
+
+-- <=
+\func <=-pmap  {a b c d : Nat} (p : a <= b) (l : a = c) (r : b = d) : c <= d =>
+  transport2 (\lam x y => x <= y) l r p
+
+\func <=-transportR {a b c : Nat} (p : a <= b) (q : b = c) : (a <= c) =>
+  transport (\lam x => a <= x) q p
+
+\func <=-transportL {a b c : Nat} (p : a <= b) (q : a = c) : (c <= b) =>
+  transport (\lam x => x <= b) q p
+
+\func =to<= {a b : Nat} (p : a = b) : a <= b
+  | {0}, {0}, p => zero<=_
+  | {suc a}, {suc b}, p => suc<=suc (=to<= (pmap pred p))
+
+-- mod/div
+\func a_mod_a=0 (a : Nat) : mod a a = 0
+  | 0 => idp
+  | suc a =>
+    (rewriteF (NatSemiring.+-comm : 0 + a = a)) -- (inv (pmap (\lam x => suc x) (NatSemiring.+-comm : 0 + a = a) : suc (0 + a) = suc a))
+    (rewriteF (a_div_a=1 (_1<=suc_a a) : div (suc a) (suc a) = 1) (divModProp (suc a) (suc a)))
+    \where {
+      \lemma z {a b : Nat} (p : a + b = a) : b = 0 => {?}
+
+      \lemma _1<=suc_a (a : Nat) : (1 <= suc a)
+        | 0 => suc<=suc zero<=_
+        | suc a => NatLE.<=-transitive (_1<=suc_a a) (<=-suc)
+    }
+
+-- rewrite (a_div_a=1 a) (divModProp a a)
+
+\func a_div_a=1 {a : Nat} (p : 1 <= a) : div a a = 1 =>
+  NatLE.<=-antisymmetric (div_a_a<=1 p) (_1<=a_div_a p)
+
+-- 1 >= div a a
+\func div_a_a<=1 {a : Nat} (p : 1 <= a) : (div a a <= 1) => <=-inverse (!2<=a_div_a p)
+
+--\func <=-pred {a b : Nat} (p : suc a <= suc b) : (a <= b)
+--  | {0}, {0}, suc<=suc p => zero<=_
+--  | {0}, {suc b}, suc<=suc p => zero<=_
+--  | {suc a}, {0}, suc<=suc p => {?}
+--  | {suc a}, {suc b}, suc<=suc p => <=_+ (<=-pred {a} {b} p) (=to<= idp : 1 <= 1)
+
+\func <=-inverse {a b : Nat} (p : Not (suc a <= b)) : (b <= a)
+  | {0}, {suc b}, p => contradiction {p ((<=_+ {0} {b} {1} {1} (zero<=_) (=to<= idp)) : suc 0 <= suc b)}
+  | {suc a}, {suc b}, p => <=_+ (<=-inverse {a} {b} (\lam x' => p (<=_+ x' (=to<= idp : 1 <= 1)))) (=to<= idp : 1 <= 1)
+  | {0}, {0}, p => zero<=_
+  | {suc a}, {0}, p => zero<=_
+
+-- \func {a : Nat} (p : 1 <= a) : Not (2 <= div a a)
+\func !2<=a_div_a {a : Nat} (p : 1 <= a) (q : 2 <= div a a) : Empty =>
+  ! p (NatLE.<=-transitive (<=-transportL (<=-mul a q) (NatSemiring.+-assoc *> NatSemiring.+-comm)) (drop_modaa a))
+-- (<=_+ (=to<= (divModProp a a)) (zero<=_))
+
+\func <=-mul (a : Nat) {b c : Nat} (p : b <= c) : a * b <= a * c
+  | a, {suc b}, {suc c}, suc<=suc p => <=_+ (<=-mul a p) (=to<= idp)
+  | a, {0}, p => zero<=_
+
+\func drop_modaa (a : Nat) : a * (div a a) <= a =>
+  NatLE.<=-transitive (<=_0_+-right (mod a a)) (=to<= (divModProp a a))
+
+-- a * div a a + mod a a = a
+-- a * div a a <= a
+-- a * 2 <= a
+
+
+\func ! {a : Nat} (p : 1 <= a) (q : a + a <= a) : Empty =>
+  !a=b&a<b (inv (!a+a<=a p q)) (!suc_a<=a+a p)
+  \where {
+    \func !a+a<=a {a : Nat} (p : 1 <= a) (q : a + a <= a) : a + a = a =>
+      (NatLE.<=-antisymmetric q (a<=a+a p))
+
+    \func !suc_a<=a+a {a : Nat} (p : 1 <= a) : a + 1 <= a + a =>
+      <=_+ (=to<= idp) p
+
+    \func a'=b'=>a=b {a b : Nat} (p : suc a = suc b) : (a = b)
+      | {0}, {0}, p => idp
+      | {suc a}, {suc b}, p => pmap (\lam x => x + 1) (a'=b'=>a=b {a} {b} p)
+
+    \func !a=b&a<b {a b : Nat} (p : a = b) (q : suc a <= b) : Empty
+      | {0}, {0}, p, ()
+      | {suc a}, {suc b}, p, suc<=suc q => !a=b&a<b {a} {b} (a'=b'=>a=b p) q
+  }
+
+\func a<=a+a {a : Nat} (p : 1 <= a) : (a <= a + a) =>
+  <=_+ (=to<= idp) (zero<=_)
+
+\func !a<=0&1<=a {a : Nat} (p : 1 <= a) (q : a <= 0) : Empty =>
+  neq1 (a<=0=>a=0 q) p
+
+\func a<=0=>a=0 {a : Nat} (q : a <= 0) : a = 0
+  | {0}, zero<=_ => idp
+
+\func neq1 {a : Nat} (q : (a = 0)) (p : 1 <= a) : Empty
+  | {0}, q, ()
+
+-- 1 <= div a a
+\func neq0 {a : Nat} (q : Not (a = 0)) : 1 <= a
+  | {0}, q => contradiction {q idp}
+  | {suc a}, q => suc<=suc zero<=_
+
+\func _1<=a_div_a {a : Nat} (p : 1 <= a) : (1 <= div a a) => neq0 (!a_div_a=0 p)
+
+-- \func !a_div_a=0 {a : Nat} (p : 1 <= a) : Not (div a a = 0) =>
+\func !a_div_a=0 {a : Nat} (p : 1 <= a) (q : div a a = 0) : Empty =>
+  !a_mod_a=a p (
+    NatSemiring.+-comm *>
+    transport (\lam x => x + mod a a = a) (
+      (pmap (\lam x => a * x) q) : a * div a a = 0
+    ) (divModProp a a)
+ )
+
+\func !a_mod_a=a {a : Nat} (p : 1 <= a) (q : mod a a = a) : Empty =>
+  !suc_a<=a (transport (\lam x => suc x <= a) q (modProp a p))
+
+\func !suc_a<=a {a : Nat} (q : suc a <= a) : Empty
+  | {suc a}, suc<=suc q => !suc_a<=a q
+
+-- \func +mod {a b c d e : Nat}  (p : mod a d = b) (q : mod c d = e)

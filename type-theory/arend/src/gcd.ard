@@ -1,0 +1,560 @@
+\import Algebra.Group
+\import Algebra.Monoid
+\import Algebra.Ring
+\import Arith.Int
+\import Arith.Nat
+\import Data.Bool
+\import first.eq_ok
+\import HLevel
+\import Less (&&, Unit)
+\import Logic
+\import Logic.Meta
+
+-- \open Nat
+
+\open Nat
+\import Order.LinearOrder
+\import first.leq_ok
+\import Paths
+\import Paths.Meta
+\import first.mod_n_ok (div_a*n_a=n, div_n*a_a=n, mod_a*n_a=0)
+
+------------------
+-- Осталось доказать:
+-- 1. b*c + d = k*c => d : c
+-- 2. переход от gcd к gcd-helper
+-- 3. более формально расписать что это именно gcd основываясь на доказанных свойствах
+------------------
+
+
+--\func undo {a b : Nat} (p : a <= b) : (<=-bool-to-<= (<=-to-<=-bool p)) = p
+--  | {0}, {0}, zero<=_ => idp
+--  | {0}, {suc b}, zero<=_ => idp
+--  | {suc a}, {suc b}, suc<=suc p => l0 a b p (undo p)
+--  \where {
+--    \lemma l0 (a b : Nat) (p : a <= b)
+--              (q : <=-bool-to-<= (<=-to-<=-bool p) = p)
+--      : <=_+ (<=-bool-to-<= (<=-to-<=-bool p)) (suc<=suc zero<=_ : 1 <= 1) = suc<=suc p
+--      | 0, 0, zero<=_, q => {?}
+--      | 0, suc b, zero<=_, q => {?}
+--      | suc a, suc b, suc<=suc p, q => l4 a b p
+--
+--    --\lemma l1 (a b : Nat) : <=-bool a b = <=-bool (suc a) (suc b) => idp
+--    --\lemma l2 (a b : Nat) (p : <=-bool a b = true) : <=-bool-to-<= p = <=-bool-to-<= p
+--
+--    \lemma l3 (a b : Nat) : (<=-to-<=-bool {a} {b} = <=-to-<=-bool {suc a} {suc b}) => {?}
+--
+--    \lemma l4 (a b : Nat) (p : a <= b)
+--      : (<=-bool-to-<= (<=-to-<=-bool {a} {b} p)) = (<=-bool-to-<= (<=-to-<=-bool {suc a} {suc b} (<=_+ p (suc<=suc zero<=_ : 1 <= 1))))
+--      | 0, 0, zero<=_ => idp
+--      | 0, suc b, zero<=_ => idp
+--      | suc a, suc b, suc<=suc p => idp
+--  }
+
+\func <=-bool (a b : Nat) : Bool
+  | 0, 0 => true
+  | 0, suc b => true
+  | suc a, 0 => false
+  | suc a, suc b => <=-bool a b
+
+\func <=-bool-to-<= {a b : Nat} (p : <=-bool a b = true) : a <= b
+  | {0}, {0}, p => zero<=_
+  | {0}, {suc b}, p => zero<=_
+  | {suc a}, {suc b}, p => <=-+C (<=-bool-to-<= {a} {b} (p)) 1
+
+\func <=-to-<=-bool {a b : Nat} (p : a <= b) : <=-bool a b = true
+  | {0}, {0}, zero<=_ => idp
+  | {0}, {suc b}, zero<=_ => idp
+  | {suc a}, {suc b}, suc<=suc p => <=-to-<=-bool p
+
+\func <=-bool-inv {a b : Nat}  (p : <=-bool a b = false) : (<=-bool b a = true)
+  | {0}, {0}, ()
+  | {suc a}, {0}, p => idp
+  | {suc a}, {suc b}, p => <=-bool-inv p
+
+\func <=-bool-inv-ext {a b : Nat}  (p : <=-bool a b = false) : (<=-bool (suc b) a = true)
+  | {0}, {0}, ()
+  | {suc a}, {0}, p => (<=-to-<=-bool zero<=_)
+  | {suc a}, {suc b}, p => <=-bool-inv-ext p
+
+
+\func mod_a_b<=b (a b : Nat) (p : 1 <= b) : (mod a b <= b) \elim b
+  | suc b => NatLE.<=-transitive (a<=suc_a) (modProp a {suc b} (_1<=suc_a b))
+
+\func mod_a_b<b (a b : Nat) (p : 1 <= b) : (suc (mod a b) <= b) \elim b
+  | suc b => (modProp a {suc b} (_1<=suc_a b))
+
+-- Correctness
+
+-- let g := gcd(a, b) === (a % g = 0) && (b % g = 0) && (forall n . (n > g) -> (a % n =/= 0) || (b % n =/= 0))
+-- можно попробовать доказать что (a % c) => (g % c) и отсюда как-то достать что он максимальный
+-- тип g: (forall c . ((a % c = 0) && (b % c = 0)) -> (g > c))
+--    <== (forall c . ((a % c = 0) && (b % c = 0)) -> (g % c = 0))
+--\func gcd-isDivider (a b : Nat) : (mod a (gcd a b) = 0) && (mod b (gcd a b) = 0) =>
+--  gcd-isDivider-seq
+-- можно доказать что a : c, b : c => g : c
+-- ???
+
+-- \func gcd-isDivider-weak (a b : Nat) : (mod a (gcd a b) = 0) -- ??
+
+\func mod0_a=0 {a : Nat} : mod 0 a = 0
+  | {0} => idp
+  | {a} => a<=0=>a=0 (NatLE.<=-transitive (<=_0_+-left (a * div 0 a)) (=to<= (divModProp 0 a)))
+
+\func moda_a=0 {a : Nat} : mod a a = 0
+  | {0} => idp
+  | {suc a'} => \let | a => suc a' \in
+    rewriteF ((l2 (_1<=suc_a a'))) (moda_b=a-b*diva_b a a) *> -'id a'
+  \where {
+    \func l1 {a : Nat} (p : 1 <= a) : div a a = 1 =>
+      rewriteF (+-comm : a * 1 = a) (div_a*n_a=n 1 (p : 1 <= a))
+
+    \func l2 {a : Nat} (p : 1 <= a) : a * div a a = a =>
+      pmap (\lam x => a * x) (l1 p) *> (NatSemiring.+-comm)
+  }
+
+\func moda_b=a-b*diva_b (a b : Nat) : mod a b = a -' b * div a b =>
+  (+-=-> {mod a b} {b * div a b} {a} (NatSemiring.+-comm *> divModProp a b)).1
+
+--\func gcd-isDivider2
+--  (a b : Nat)
+--  : (mod b (gcd a b) = 0) && (mod a (gcd a b) = 0) =>
+
+\func gcd (a b : Nat) : Nat => m a b (<=-bool a b) idp
+  \where {
+    \func m (a b : Nat) (p : Bool) (q : <=-bool a b = p) : Nat \elim p
+      | true => gcd-helper a b (<=-bool-to-<= q)
+      | false => gcd-helper b a (<=-bool-to-<= (<=-bool-inv q))
+  }
+
+\func gcd-helper (a b : Nat) (p : a <= b) : Nat =>
+  gcd-helper-n a b a p (=to<= idp)
+
+\func gcd-helper-n (a b : Nat) (n : Nat) (p : a <= b) (q : a <= n) : Nat
+  | 0, b, n, p, q => b
+  | suc a', b, suc n, p, q =>
+    \let | a => suc a' \in
+      gcd-helper-n (mod b a) a n
+          (mod_a_b<=b b a (_1<=suc_a a' : 1 <= a): mod b a <= a)
+          (p1 a b n q (_1<=suc_a a' : 1 <= a) : mod b a <= n) -- mod b a
+  \where {
+    \func p1 (a b n : Nat) (p : a <= suc n) (q : 1 <= a) : mod b a <= n =>
+      <=-pred-i (NatLE.<=-transitive
+          (mod_a_b<b b a (q : 1 <= a) : suc (mod b a) <= a)
+          (p : a <= suc n))
+  }
+
+\func link-a<=b (a b : Nat) (p : a <= b) : gcd a b = gcd-helper a b p => l1 a b p
+  \where {
+    \lemma l1 (a b : Nat) (p : a <= b)
+      : gcd.m a b (<=-bool a b) idp = gcd-helper a b p =>
+      \case <=-bool a b \as less,
+            idp \as id : <=-bool a b = less
+      \return gcd.m a b less id = gcd-helper a b p
+      \with {
+        | true, id => gcd-helper-any-<= a b (<=-bool-to-<= id) p
+        | false, id => absurd (a<=b&a>b p (<=-bool-to-<= (<=-bool-inv-ext id)))
+      }
+  }
+
+\func link-b<a (a b : Nat) (p : suc b <= a) : gcd a b = gcd-helper b a (NatLE.<=-transitive a<=suc_a p)
+  => l1 a b p
+  \where {
+    \lemma l1 (a b : Nat) (p : suc b <= a)
+      : gcd.m a b (<=-bool a b) idp = gcd-helper b a (NatLE.<=-transitive a<=suc_a p) =>
+      \case <=-bool a b \as less,
+            idp \as id : <=-bool a b = less
+      \return gcd.m a b less id = gcd-helper b a (NatLE.<=-transitive a<=suc_a p)
+      \with {
+        | true, id => {?} -- absurd (a<=b&a>b p (<=-bool-to-<= id))
+        | false, id => gcd-helper-any-<= b a (<=-bool-to-<= (<=-bool-inv id)) (NatLE.<=-transitive a<=suc_a p)
+      }
+  }
+
+\func gcd-helper-any-<= (a b : Nat) (p : a <= b) (q : a <= b) :
+  gcd-helper a b p = gcd-helper a b q
+  | 0, 0, zero<=_, zero<=_ => idp
+  | 0, suc b, zero<=_, zero<=_ => idp
+  | suc a, suc b, suc<=suc p, suc<=suc q => idp
+
+\func to-gcd-helper
+  (f : \Pi (a : Nat) (b : Nat) (res : Nat) -> \Type)
+  (step : \Pi (a : Nat) (b : Nat) (p : a <= b) -> f a b (gcd-helper a b p))
+  (a : Nat) (b : Nat) -- (p : a <= b)
+  : f a b (gcd a b) =>
+  \case <=-bool a b \as less, idp \as id : <=-bool a b = less \with {
+    | true, id =>
+      transport (f a b) --(\lam x => (mod b x = 0) && (mod a x = 0))
+          (inv (link-a<=b a b (<=-bool-to-<= id) : gcd a b = gcd-helper a b (<=-bool-to-<= id)))
+          (step a b (<=-bool-to-<= id))
+    | false, id => {?}
+  }
+
+\func to-gcd-helper-2
+  (a : Nat) (b : Nat) -- (p : a <= b)
+  (f : \Pi (res : Nat) -> \Type)
+  (step : \Pi (p : a <= b) -> f (gcd-helper a b p))
+  (step2 : \Pi (p : b <= a) -> f (gcd-helper b a p))
+  : f (gcd a b) =>
+  \case <=-bool a b \as less, idp \as id : <=-bool a b = less \with {
+    | true, id =>
+      transport f --(\lam x => (mod b x = 0) && (mod a x = 0))
+          (inv (link-a<=b a b (<=-bool-to-<= id) : gcd a b = gcd-helper a b (<=-bool-to-<= id)))
+          (step (<=-bool-to-<= id))
+    | false, id =>
+      transport f
+      (link-b<a a b (<=-bool-to-<= (<=-bool-inv-ext id)))
+      (step2 (<=-bool-to-<= (<=-bool-inv id)))
+  }
+
+\func to-gcd-helper-2-n
+  (a : Nat) (b : Nat) -- (p : a <= b)
+  (p : a <= b)
+  (f : \Pi (res : Nat) -> \Type)
+  (step : \Pi (n : Nat) (q : a <= n) -> f (gcd-helper-n a b n p q))
+  : f (gcd-helper a b p)
+  | 0, b, p, f, step => step 0 zero<=_
+  | a, b, p, f, step => {?}
+--    \let | a => suc a' \in
+--      gcd-helper-n (mod b a) a n
+--          (mod_a_b<=b b a (_1<=suc_a a' : 1 <= a): mod b a <= a)
+--          (p1 a b n q (_1<=suc_a a' : 1 <= a) : mod b a <= n) -- mod b a
+--  \where {
+--    \func p1 (a b n : Nat) (p : a <= suc n) (q : 1 <= a) : mod b a <= n =>
+--      <=-pred-i (NatLE.<=-transitive
+--          (mod_a_b<b b a (q : 1 <= a) : suc (mod b a) <= a)
+--          (p : a <= suc n))
+
+--\func to-gcd-helper-3-n
+--  (a : Nat) (b : Nat) -- (p : a <= b)
+--  (p : a <= b)
+--  (statement : \Pi (a : Nat) (b : Nat) (res : Nat) -> \Type)
+--  (start : \Pi (a : Nat) (res : Nat) -> statement 0 a res)
+--  (step : \Pi (a b : Nat) (res : Nat) (statement a (mod b a) res) -> statement b a res)
+--  : \Pi (a b : Nat) (n : Nat) (p : a <= b) (q : a <= n) -> statement (gcd-helper a b n p q)
+--
+--  statement a b (gcd-helper a b p)
+--  | 0, b, p, f, step => start b
+--  | a, b, p, f, step => {?}
+
+    --  \case <=-bool a b \as less, idp \as id : <=-bool a b = less \with {
+    --    | true, id =>
+    --      transport f --(\lam x => (mod b x = 0) && (mod a x = 0))
+    --          (inv (link-a<=b a b (<=-bool-to-<= id) : gcd a b = gcd-helper a b (<=-bool-to-<= id)))
+    --          (step (<=-bool-to-<= id))
+    --    | false, id => {?}
+    --  }
+
+    --\func test (a b : Nat) : gcd a b = 0 => to-gcd-helper-2 a b (\lam x => x = 0) (ax a b)
+    --  \where {
+    --    \func ax (a : Nat) (b : Nat) (p : a <= b) : gcd-helper a b p = 0 => {?}
+    --  }
+
+    \func gcd-isDivider2-ext
+      (a b : Nat)
+      : (mod b (gcd a b) = 0) && (mod a (gcd a b) = 0) =>
+      (to-gcd-helper-2
+          a b
+          (\lam x => (mod b x = 0) && (mod a x = 0))
+          (gcd-isDivider2-seq a b))
+
+    \func gcd-isDivider-ext
+      (a b c : Nat)
+      (am : mod a c = 0)
+      (bm : mod b c = 0)
+      : (mod (gcd a b) c = 0) =>
+      (to-gcd-helper-2
+          a b
+          (\lam x => (mod x c = 0))
+          (\lam p => gcd-isDivider-seq a b c p am bm))
+
+    \func gcd-isDivider2
+      (a b : Nat)
+      : (mod b (gcd a b) = 0) && (mod a (gcd a b) = 0) => -- lm a b (<=-bool a b) idp
+      \case <=-bool a b \as less, idp \as id : <=-bool a b = less \with {
+        | true, id =>
+          transport (\lam x => (mod b x = 0) && (mod a x = 0))
+              (inv (link-a<=b a b (<=-bool-to-<= id) : gcd a b = gcd-helper a b (<=-bool-to-<= id)))
+              (gcd-isDivider2-seq a b (<=-bool-to-<= id))
+        | false, id => {?}
+      }
+
+      \where {
+        \func lm (a b : Nat) (p : Bool) (q : <=-bool a b = p)
+          : (mod b (gcd a b) = 0) && (mod a (gcd a b) = 0) \elim p
+          | true => gcd-isDivider2-seq a b (<=-bool-to-<= q)
+          | false => gcd-helper b a (<=-bool-to-<= (<=-bool-inv q))
+      }
+
+    \func gcd-isDivider2-seq
+      (a b : Nat)
+      (p : a <= b)
+      -- : (mod a (gcd-helper a b p) = 0) => gcd-isDivider-seq-n2 a b c a p (=to<= idp)
+      : (mod b (gcd-helper a b p) = 0) && (mod a (gcd-helper a b p) = 0) =>
+      gcd-isDivider-seq-n2 a b a p (=to<= idp)
+
+    \func gcd-isDivider-seq-n2
+      (a b : Nat)
+      (n : Nat)
+      (p : a <= b)
+      (q : a <= n)
+      : (mod b (gcd-helper-n a b n p q) = 0) && (mod a (gcd-helper-n a b n p q) = 0)
+      | 0, b, n, p, q => (moda_a=0, mod0_a=0)
+      | suc a', b, suc n, p, q =>
+        \let | a => suc a' \in
+             -- up_mod (
+          up_mod
+              (gcd-isDivider-seq-n2 (mod b a) a n
+                  (mod_a_b<=b b a (_1<=suc_a a' : 1 <= a): mod b a <= a)
+                  (gcd-helper-n.p1 a b n q (_1<=suc_a a' : 1 <= a) : mod b a <= n)) -- mod b a
+      \where {
+        \func up_mod {a b c : Nat} (p : (mod a c = 0) && (mod (mod b a) c = 0))
+          : (mod b c = 0) && (mod a c = 0) => (up p.1 p.2, p.1)
+          \where {
+            \func up {a b c : Nat} (p : mod a c = 0) (q : mod (mod b a) c = 0) : mod b c = 0 =>
+              mod_c*k=b
+                  (NatSemiring.ldistr c (div a c * div b a) (div (mod b a) c) *>
+                  (rewriteF (NatSemiring.*-assoc)
+                      (rewriteF (div_if_mod=0 q)
+                          (rewriteF (pmap (\lam x => x * div b a) (div_if_mod=0 p)) (divModProp b a)
+                          : c * div a c * div b a + (divMod b a).2 = b)
+                      : c * div a c * div b a + c * div (divMod b a).2 c = b)
+                  : c * (div a c * div b a) + c * div (divMod b a).2 c = b)
+                  : c * (div a c * div b a + div (divMod b a).2 c) = b)
+
+            \func div_if_mod=0 {a c : Nat} (p : mod a c = 0) : a = c * div a c =>
+              inv (rewriteF p (divModProp a c))
+
+            \func mod_c*k=b {c k b : Nat} (p : c * k = b) : mod b c = 0 =>
+              rewriteF p (mod_a*n_a=0 c k)
+          }
+      }
+
+    --------------------------------------
+
+
+    \func gcd-isDivider
+      (a b c : Nat)
+      (am : mod a c = 0)
+      (bm : mod b c = 0)
+      : (mod (gcd a b) c = 0) =>
+      \case <=-bool a b \as res, idp : <=-bool a b = res \return (
+
+      ) \with {
+        | true, p => gcd-isDivider-seq a b c (<=-bool-to-<= p) am bm
+        | false, p => gcd-isDivider-seq b a c (<=-bool-to-<= (<=-bool-inv p)) bm am
+      }
+      \where {
+        \func gcd-isDivider-left (a b : Nat) (p : <=-bool a b = true)
+          : gcd a b = gcd.m a b (<=-bool a b) idp => idp
+
+        \func gcd-isDivider-left2 (a b : Nat) (p : <=-bool a b = true)
+          : gcd.m a b (<=-bool a b) idp = gcd.m a b true p =>
+
+        -- (pmap (\lam (x : Bool) => gcd.m a b x p) p)
+        --({?} -- (pmap (\lam (x : Bool) => gcd.m a b x) p)
+        --   : (\lam x => gcd.m a b (<=-bool a b) x) =
+        --     (\lam y => gcd.m a b true (y *> p)))
+        -- pmap2 (\lam (x : Bool) (y : <=-bool a b = x) => gcd.m a b x y) p ({?})
+
+        \func gcd-isDivider-left-helper (a b : Nat) (p : <=-bool a b = true)
+          : gcd.m a b true p = gcd-helper a b (<=-bool-to-<= p) => idp
+
+        \func gcd-isDivider-left-helper2 (a b : Nat) (p : <=-bool a b = true)
+          : gcd a b = gcd.m a b true p
+          | 0, 0, p => idp
+          | 0, suc b, p => idp
+          | suc a, suc b, p => gcd-isDivider-left-helper2 a b ({?})
+
+        \func leq (a b : Nat) : \Type
+          | 0, b => Unit
+          | a, b => Empty
+      }
+
+    \func gcd-isDivider-seq
+      (a b c : Nat)
+      (p : a <= b)
+      (am : mod a c = 0)
+      (bm : mod b c = 0)
+      : (mod (gcd-helper a b p) c = 0) => gcd-isDivider-seq-n a b c a p (=to<= idp) am bm
+
+    \func gcd-isDivider-seq-n
+      (a b c : Nat)
+      (n : Nat)
+      (p : a <= b)
+      (q : a <= n)
+      (am : mod a c = 0)
+      (bm : mod b c = 0)
+      : (mod (gcd-helper-n a b n p q) c = 0)
+      | 0, b, c, n, p, q, am, bm => bm
+      | suc a', b, c, suc n, p, q, am, bm =>
+        \let | a => suc a' \in
+          gcd-isDivider-seq-n (mod b a) a c n
+              (mod_a_b<=b b a (_1<=suc_a a' : 1 <= a): mod b a <= a)
+              (gcd-helper-n.p1 a b n q (_1<=suc_a a' : 1 <= a) : mod b a <= n) -- mod b a
+              (gcd-isDivider-seq-simple {a} {b} {c} p am bm : mod (mod b a) c = 0)
+              am
+
+    --\func gcd-isDivider-seq-n2
+    --  (a b c : Nat)
+    --  (n : Nat)
+    --  (p : a <= b)
+    --  (q : a <= n)
+    --  (am : mod a c = 0)
+    --  (bm : mod b c = 0)
+    --  : \Pi (n : Nat) -> \Pi (n<=a : a <= n) -> (mod (gcd-helper-n a b n p n<=a) c = 0)
+    --  | 0, b, c, n, p, q, am, bm => \lam _ _ => bm
+    --  | suc a', b, c, suc n, p, q, am, bm => \lam n n<=a =>
+    --      \let | a => suc a' \in
+    --        gcd-isDivider-seq-n2 (mod b a) a c n
+    --            (mod_a_b<=b b a (_1<=suc_a a' : 1 <= a): mod b a <= a)
+    --            (gcd-helper-n.p1 a b n q (_1<=suc_a a' : 1 <= a) : mod b a <= n) -- mod b a
+    --            (gcd-isDivider-seq-simple {b} {a} {c} p bm am : mod (mod b a) c = 0)
+    --            am
+
+    -- => gcd-isDivider-seq a b c l p q
+
+    \func gcd-isDivider-seq-simple
+      {a b c : Nat}
+      (l : a <= b)
+      (p : mod a c = 0)
+      (q : mod b c = 0)
+      : (mod (mod b a) c = 0) =>
+
+    -- moda_b=a-b*diva_b (mod b a) c
+    -- divModProp b a
+
+    -- b = c * k
+    -- a = c * p
+
+    \func helper2
+      {a b c d : Nat}
+      (p : a + b = d)
+      (amodc : mod a c = 0)
+      (dmodc : mod d c = 0)
+      : (mod b c = 0)
+
+    \func helpeasdr1 {c p k : Nat} : c * (p -' k) = (c * p) -' (c * k)
+      | {0}, {p}, {k} =>
+        _0*a=0 (p -' k) *>
+        (inv (pmap2 (\lam x y => x -' y) (_0*a=0 p : 0 * p = 0) (_0*a=0 k : 0 * k = 0)))
+      | {suc c}, {p}, {k} => pmap (\lam x => x + p -' k) (helpeasdr1 {c} {p} {k})
+      \where {
+        \func _0*a=0 (a : Nat) : 0 * a = 0
+          | 0 => idp
+          | suc a => _0*a=0 a
+
+        \func a-'0 (a : Nat) : a -' 0 = a
+          | 0 => idp
+          | suc a => idp
+      }
+
+    \func helper1 {c p k : Nat} : c * (p -' k) = c * p -' c * k =>
+      IntRing.pos_minus-ldistr {c} {p} {k}
+      \where {
+        \func l1 {a b : Nat} : pos a * pos b = pos (a * b) => idp
+
+        \func l1 {a b : Nat} : pos a * pos b = pos (a * b) => idp
+      }
+
+    --\func +--'assoc (a b : Nat) : a = (a + b) -' b
+    --  | 0, 0 => idp
+    --  | 0, suc b => {?}
+    --  | suc a, 0 => idp
+    --  | suc a, suc b => +--'assoc a b
+    --    \where {
+    --      \func -'-suc {a b : Nat} : suc (a -' b) = suc a -' b
+    --        | {0}, {0} => idp
+    --        | {0}, {suc b} => {?}
+    --        | {suc a}, {0} => idp
+    --        | {suc a}, {suc b} => {?}
+    --    }
+
+    \func fromPos (a : Int) (p : 0 IntLE.<= a) : Nat
+      | {pos n}, IntLE.pos<=pos _x => n
+
+    \func i_=to<= {a b : Int} (p : a = b) : a IntLE.<= b
+      | {pos n}, {pos n1}, p => {?}
+      | {pos n}, {neg n1}, p => {?}
+      | {neg n}, {pos n1}, p => {?}
+      | {neg n}, {neg n1}, p => {?}
+      \where {
+        contr1 {a b : Int} (p : a = b) :
+      }
+
+    \func a-b>=0 {a b : Nat} (p : b <= a) : 0 IntLE.<= a Nat.- b
+      | {0}, {0}, zero<=_ => =to<=
+      | {suc a}, {0}, zero<=_ => {?}
+      | {suc a}, {suc b}, suc<=suc p => a-b>=0 p
+
+    \func -as-' (a b : Nat) (p : b <= a) : fromPos (a Nat.- b) (a-b>=0 p) = a -' b
+      | 0, 0, zero<=_ => {?}
+      | suc a, 0, zero<=_ => {?}
+      | suc a, suc b, suc<=suc p => {?}
+
+    \func -'as+negative (a b : Nat) (p : b <= a)
+      : Int.fromNat (a -' b) = Int.fromNat a + IntRing.negative (Int.fromNat b)
+      | 0, 0, zero<=_ => idp
+      | suc a, 0, zero<=_ => idp
+      | suc a, suc b, suc<=suc p => -'as+negative a b p *> (inv (l1 a b))
+      \where {
+        \func l1 (a b : Nat)
+          : Int.fromNat (suc a) + IntRing.negative (Int.fromNat (suc b))
+          = Int.fromNat a + IntRing.negative b
+          | 0, 0 => idp
+          | 0, suc b => idp
+          | suc a, 0 => idp
+          | suc a, suc b => idp
+      }
+
+    \func a-'b+b=a (a b : Nat) (p : b <= a) : (a -' b) + b = a
+      | 0, 0, zero<=_ => idp
+      | suc a, 0, zero<=_ => idp
+      | suc a, suc b, suc<=suc p => pmap suc (a-'b+b=a a b p)
+
+    \func a+b-'b=a (a b : Nat) : (a + b) -' b = a
+      | 0, 0 => idp
+      | 0, suc b => rewrite (+-comm : 0 + b = b + 0) (-'id b)
+      | suc a, 0 => idp
+      | suc a, suc b => inv (l1 a b) *> pmap suc (a+b-'b=a a b)
+      \where {
+        \func l1 (a b : Nat) : suc ((a + b) -' b) = (suc a + b) -' b =>
+          rewriteI (l3 a b) (l2 (a + b) b (<=_0_+-left a : b <= a + b))
+
+        \func l2 (a b : Nat) (p : b <= a) : suc (a -' b) = suc a -' b
+          | 0, 0, zero<=_ => idp
+          | suc a, 0, zero<=_ => idp
+          | suc a, suc b, suc<=suc p => l2 a b p
+
+        \func l3 (a b : Nat) : suc (a + b) = (a + 1) + b =>
+          NatSemiring.+-assoc {a} {b} {1} -- a + (b + 1)
+            *> pmap (\lam x => a + x) (NatSemiring.+-comm {b} {1}) -- a + (b + 1) = a + (1 + b)
+                 *> inv (NatSemiring.+-assoc {a} {1} {b})
+      }
+
+    \func +-=->
+      {a b c : Nat}
+      (p : a + b = c)
+      : (a = c -' b) && (b <= c) =>
+      (rewriteF (-'id b : b -' b = 0)
+           ( (rewrite (-'id b) (idp)
+           : a + (b -' b) = a)
+             *>
+           (inv (a+b-'b=a a b)
+           : a = (a + b) -' b)
+             *>
+           (pmap (\lam x => x -' b) p
+           : (a + b) -' b = c -' b)
+           : a + (b -' b) = c -' b)
+       : a + 0 = c -' b
+      , rewriteF (p) (<=_0_+-left {b} a : b <= a + b)
+      )
+
+    \func +-=<-
+      {a b c : Nat}
+      (p : a = c -' b)
+      (q : b <= c)
+      : (a + b = c) =>
+      pmap (\lam x => x + b) p *> a-'b+b=a c b q
+
+------------------------------------------------------------------

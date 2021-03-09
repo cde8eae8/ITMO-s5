@@ -1,0 +1,104 @@
+\import Algebra.Group
+\import Algebra.Monoid
+\import Algebra.Ring
+\import Algebra.Semiring
+\import Arith.Int
+\import Arith.Nat
+\import HLevel
+\import Relation.Equivalence
+
+-- \import first.gcd_ok (link-a<=b-bool, link-b<a-bool)
+\import first.leq_ok (=to<=)
+\import Less (&&)
+\import Logic
+\import Logic.Meta
+\import Paths
+\import Paths.Meta
+\import Order.LinearOrder
+\import first.gcd_ok
+-- \import gcd (-'as+negative)
+\import imod
+\import first.mod_n_ok (_1<=suc_a, div_n*a_a=n)
+\import Arith.Int
+\import Data.Bool
+
+\data ModOk (mod : Nat)
+  | proof (2 Nat.<= mod)
+
+\truncated \data QuotientRing (mod : Nat) (ModOk mod) : \Set
+  | num Nat
+  | eq (a : Nat) (i : I) \elim i {
+    | left => num a
+    | right => num (a + mod)
+  }
+  \where {
+    \func \infixl 7 * {m : Nat} {ok : ModOk m} (x y : QuotientRing m ok) : QuotientRing m ok
+      | {m}, {proof _x}, num n, num n1 => num (n Nat.* n1)
+      | {m}, {proof _x}, num n, eq a i => {?}
+      | {m}, {proof _x}, eq a i, num n => {?}
+  }
+
+-- \func q (mod : Nat) (a : Nat) : QuotientRing mod => num a
+
+\func a=a+mmodm
+  (a m : Nat)
+  : num {m} a = num {m} (a + m) => path (eq a)
+
+\func a=a+mkmodm
+  (a k m : Nat)
+  (ok : ModOk m)
+  : num {m} {ok} a = num {m} {ok} (a + m * k)
+  | a, 0, m, ok => idp
+  | a, suc k, m, ok => a=a+mkmodm a k m ok *> a=a+mmodm (a + m * k) m
+
+\data numInRange (a min max : Nat)
+  | proof-min-max (min Nat.<= a) (suc a Nat.<= max)
+  \where {
+    \func min-proof {a min max : Nat} (v : numInRange a min max) : (min Nat.<= a)
+      | proof-min-max x _ => x
+
+    \func max-proof {a min max : Nat} (v : numInRange a min max) : (suc a Nat.<= max)
+      | proof-min-max _ x => x
+  }
+
+\func mod=QR (a m : Nat) (ok : ModOk m) : (num a = num (Nat.mod a m)) =>
+  inv (((a=a+mkmodm (Nat.mod a m) (Nat.div a m) m ok) *> pmap num +-comm
+  : num (Nat.mod a m) = num (m * Nat.div a m + Nat.mod a m)) *>
+  (pmap num (Nat.divModProp a m)
+  : num (m * Nat.div a m + Nat.mod a m) = num a
+  ))
+
+\func openQR (m : Nat) (ok : ModOk m) (a : QuotientRing m ok) : Nat
+  | m, proof _x, num n => Nat.mod n m
+  | m, proof _x, eq a i => {?} -- Nat.mod (a) m
+
+\func open-prop1 (m : Nat) (ok : ModOk m) (a : QuotientRing m ok)
+  : numInRange (openQR m ok a) 0 m
+  | m, proof ok, num n =>
+    proof-min-max Nat.zero<=_ (transport (\lam x => suc x Nat.<= m) (inv (open_num m (proof ok) n))
+        (Nat.modProp n {m} (NatLE.<=-transitive (Nat.suc<=suc Nat.zero<=_ : 1 Nat.<= 2) ok) : suc (Nat.mod n m) Nat.<= m))
+  \where {
+    \lemma open_num (m : Nat) (ok : ModOk m) (n : Nat) : (openQR m ok (num n)) = Nat.mod n m
+      | 0, proof _x, 0 => idp
+      | 0, proof _x, suc n => contradiction {_x}
+      | suc m, proof _x, 0 => idp
+      | suc m, proof _x, suc n => idp
+  }
+
+
+--\instance QuotientRingRing {m : Nat} {ok : ModOk m} : Ring.Dec.Impl (QuotientRing m ok)
+--  | zro => num 0
+--  | + => {?}
+--  | zro-left => {?}
+--  | +-assoc => {?}
+--  | negative => {?}
+--  | negative-left => {?}
+--  | decideEq => {?}
+--  | +-comm => {?}
+--  | ide => num 1
+--  | * => {?}
+--  | ide-left => {?}
+--  | ide-right => {?}
+--  | *-assoc => {?}
+--  | ldistr => {?}
+--  | rdistr => {?}

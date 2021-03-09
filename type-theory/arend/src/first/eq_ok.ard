@@ -1,0 +1,201 @@
+\import Logic
+\import Logic.Meta
+\import Paths
+\open Nat
+
+\func a'=b'=>a=b {a b : Nat} (p : suc a = suc b) : (a = b)
+  | {0}, {0}, p => idp
+  | {suc a}, {suc b}, p => pmap (\lam x => x + 1) (a'=b'=>a=b {a} {b} p)
+
+\func a'!=b'=>a!=b {a b : Nat} (p : Not (suc a = suc b)) : Not (a = b)
+  | {0}, {0}, p => absurd (p idp)
+  | {0}, {suc b}, p => \lam (q : 0 = suc b) => contradiction
+  | {suc a}, {0}, p => \lam (q : suc a = 0) => contradiction
+  | {suc a}, {suc b}, (p : ((suc (suc a)) = (suc (suc b))) -> Empty) =>
+  \lam (q : suc a = suc b) => p (pmap suc q)
+
+\func upNatEq {a b : Nat} (p : a = b) : suc a = suc b =>
+  pmap (\lam x => suc x) p
+
+\func suc/=0' {b : Nat} (q : suc b = 0) : Empty
+
+\func a<=0=>a=0 {a : Nat} (p : a <= 0) : a = 0
+  | {0}, zero<=_ => idp
+
+--\func a/=0->a*b=0->b=0 {a b : Nat} (p : Not (a = 0)) (q : a * b = 0) : b = 0
+--  | {0}, {0}, p, q => idp
+--  | {0}, {suc b}, p, q => {?}
+--  | {suc a}, {0}, p, q => idp
+
+--\import Data.Bool
+--\open Nat
+--\import Logic.Meta
+--\import Logic
+--\import Paths
+--\import Paths.Meta
+--
+--\func f : Bool => true
+--
+--\func k (n : Nat) => 1
+--
+--\func eq {A : \Type} (a : A) : 3 = 2 => idp
+--
+--\data Pair (A B : \Type) | pair A B
+--
+--\func tuple : \Sigma (n : Nat) (n = 2) => (2, idp)
+--
+--\func strange : \Pi (b : Bool) -> (if b Nat Bool) => \lam b => \case \elim b \with {
+--  | true => 1
+--  | false => true
+--}
+--
+--\data List (A : \Type)
+--  | nil
+--  | cons A (List A)
+--
+--\func sample => cons 1 (cons 2 (cons 3 nil))
+--
+--\func rev {A : \Type} (list : List A) : List A =>
+--  | nil => nil
+--  | cons a tail => cons rev tail
+--
+--\func rec-helper {A : \Type} (list accum : List A) : List A \elim list
+--  | nil => accum
+--  | cons a list => rec-helper list (cons a accum)
+--
+--\func Leibniz {A : \Type} {a a' : A}
+--              (f : \Pi (P : A -> \Type) -> \Sigma (P a -> P a') (P a' -> P a)) : a = a'
+--  => (f (\lam x => a = x)).1 idp
+--
+--\func _1b (a b : Nat) : (a = b) || (a /= b) => idp
+--
+--\func myidp (a : Nat) : a = a => path (\lam _ => a)
+--
+--\func left=right (a : Nat) : left = right => path (\lam x => x)
+--
+---- \func a!=b (a b : Nat) (p : a = b) : Empty =>
+--
+---- path (left -> A i, right -> A i)
+----      ^-------------------------^
+--
+----\func coe (A : I -> \Type) (a : A left) (i : I) : A i
+----  \elim i
+----    | left => a
+--
+---- A(left) -> T1, A(right) -> T2
+---- a : A(left) == T1
+---- i = left | right
+---- returns A i
+---- i == left : func : A left  = a
+---- i == rigth: func : A right = ???
+--
+----\func eq (a : Nat) : a = a => coe
+--
+---- a = b === exists f : I -> A : f left = a, f right = b
+---- path (f : I -> A) -- proofs equality
+---- path (f : I -> A) : f left = f right
+---- @ (p : a = b) (i : I) : A -- get a and b from ='s proof
+--
+---- ~~> если a == a' и B a, то B a'
+---- transport {A : \Type} (B : A -> \Type) {a a' : A} (p : a = a') (b : B a) : B a'
+----                              ^-- предикат
+----    => coe (\lam i => B (p @ i)) b right
+---- p @ i -- получить по равенству на чем оно достигнуто
+---- B (p @ i) -- отмапить на элемент дальше
+--
+---- ~~> если P left доказывается через a, докажет P i
+---- \func coe (P : I -> \Type)            -- left -> exp1; right -> exp2
+----           (a : P left)                -- proof of exp1
+----           (i : I) : P i \elim i       -- return exp1 or exp2
+----   | left => a
+--
+---- P - predicate
+---- P left  ==> B a
+---- P right ==> B b
+--
+--
+--\func left=i (i : I) : left = i
+--  => coe (\lam i => left = i) idp i
+--
+--\func T (a : Bool) : \Type => \case a \with {
+--  | true => Nat
+--  | false => Empty
+--}
+--
+--\func N (a : Nat) : \Type => \case a \with {
+--  | 0 => Nat
+--  | _ => Empty
+--}
+--
+----\func a/=b (a b : Nat) (p : a = b) (p : (a + 1) = b) : Empty
+--\func true/=false (p : true = false) : Empty => transport T p 0
+--
+--\func a/=nexta (p : 0 = 1) : Empty => transport N p 0
+--
+--\func d (a b : Nat) (p : a = b) : a + 1 = b + 1 => pmap (\lam x => x + 1) p
+--
+--\func next (a : Nat) (p : a = a + 1) : a + 1 = a + 2 => d a (a + 1) p
+--  -- transport (\lam x => x = x + 1) p (a + 1)
+--
+---- (a = b -> Empty) -> Empty
+--\func neq1 (a b : Nat) (p : a = b) (q : Not (a = b)) : Empty => q p
+--\func q (a b : Nat) (p : a = b) : Not (Not (a = b)) => neq1 a b p
+--
+--\func inc (a : Nat) : Not (suc a = 0) => \lam p => (\case p \with { })
+--\func incr (a : Nat) : Not (0 = suc a) => \lam p => (\case p \with { })
+--
+--\func equal (a b : Nat) : Bool
+--  | 0, 0 => true
+--  | 0, suc b => false
+--  | suc a, 0 => false
+--  | suc a, suc b => equal a b
+--
+--\func eq2 (a b : Nat) : \Prop => \case equal a b \with {
+--  | true => a = b
+--  | false => Not (a = b)
+--}
+--
+---- A <=> B
+---- Not A <=> Not B
+--\func neq2 (p q : \Prop) (t : p = q) : (Not p = Not q)
+--  | p, q, idp => pmap (\lam x => Not x) idp
+--
+--\func neqr (a b : Nat) (p : Not (a = b)) : (Not (a + 1 = b + 1)) =>
+--  transport (\lam x => Not x) ((a = b) = ((a + 1) = (b + 1))) p
+--
+--\func r (a b : Nat) : (a = b) || (Not (a = b))
+--  | 0, 0 => byLeft idp
+--  | 0, suc b => byRight (incr b)
+--  | suc a, 0 => byRight (inc a)
+--  | suc a, suc b => \case r a b \with {
+--    | byLeft a1 => byLeft (pmap (\lam x => x + 1) a1)
+--    | byRight b1 => byRight (pmap (\lam x => x + 1) b1)
+--  }
+--
+--\func inv (a : \Type) : Not a => contradiction
+--
+--
+--\func a/=nexta2 (a : Nat) (p : a = a + 1) : Empty \elim a
+--  | 0       => a/=nexta p
+--  | suc b   => transport ( + 1) (suc b)
+--
+---- Надо получить unit = empty
+---- transport T (true = false) unit : ??
+----    T true = unit
+----    T false = empty
+----
+--
+
+\func a+b=0=>a=0
+  {a b : Nat}
+  (p : a + b = 0)
+  : a = 0
+  | {0}, {0}, p => idp
+  | {suc a}, {0}, ()
+
+\func a+b=0=>b=0
+  {a b : Nat}
+  (p : a + b = 0)
+  : b = 0
+  | {0}, {0}, p => idp
+  | {suc a}, {0}, ()
